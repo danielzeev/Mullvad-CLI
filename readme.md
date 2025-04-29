@@ -40,7 +40,7 @@ You can save the `Mullvad-CLI` directory anywhere but you will need to symlink t
 > export PATH="$HOME/bin:$PATH"
 > ```
 
-- To __symlink__ to `~/bin/`:
+- To __symlink__ to `~/bin`:
 ```bash
 ln -s /full/path/to/Mullvad-CLI/mull ~/bin/mull
 ```
