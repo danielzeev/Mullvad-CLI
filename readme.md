@@ -81,7 +81,6 @@ Query Options:
 ```
 - See [Documentation](documentation.md) for more information on each command
 
-
 ### Handling Relays
 ![Handle Relay](assets/handle_relay.gif)
 
