@@ -1,6 +1,4 @@
-# mull-cli
-
-# mull-cli: Mullvad CLI Wrapper for WireGuard (Linux)
+# Mullvad-CLI: Mullvad CLI Wrapper for WireGuard (Linux)
 A lightweight command-line Python interface to manage Mullvad VPN connections using WireGuard on Linux systems.
 Designed for Linux distros where the Mullvad app is not __officially supported__.
 
@@ -22,19 +20,19 @@ Designed for Linux distros where the Mullvad app is not __officially supported__
 - Wireguard configuration files (saved in `/etc/wireguard/`) as described in the [man pages](https://www.man7.org/linux/man-pages/man8/wg-quick.8.html)
 
 ## Installation
-No installation needed. Just clone and run:
+
 1) Clone
 ```bash
-git clone ...
+git clone https://github.com/danielzeev/Mullvad-CLI.git
 ```
 2) Make the `mull` script executable
 ```bash
-cd mull-cli
+cd Mullvad-CLI
 chmod +x mull
 ```
 3) Make `mull` command accessible from anywhere
 
-You can save the `mull-cli` directory anywhere but you will need to symlink the `mull` file to a directory in your `PATH` like `~/bin/` or `/usr/local/bin/`. 
+You can save the `Mullvad-CLI` directory anywhere but you will need to symlink the `mull` file to a directory in your `PATH` like `~/bin/` or `/usr/local/bin/`. 
 > If you move to `~/bin/` make sure it is in your `PATH` (`echo $PATH`). If it’s not, add this to your shell config (e.g. `.bashrc` or `.zshrc`):
 > ```bash
 > export PATH="$HOME/bin:$PATH"
@@ -42,7 +40,7 @@ You can save the `mull-cli` directory anywhere but you will need to symlink the 
 
 To symlink to `~/bin`:
 ```bash
-ln -s /full/path/to/mull-cli/mull ~/bin/mull
+ln -s /full/path/to/Mullvad-CLI/mull ~/bin/mull
 ```
 
 Now you can run:
@@ -76,9 +74,9 @@ The script maintains a local SQLite database of Mullvad servers for fast queryin
     - `-h, --help`: Show help message
   - **Example**
   ```bash
-  mull add se-mma-wg-001   # appends relay to relay list
+  mull add se-mma-wg-001    # appends relay to relay list
 
-  mull add se-mma-wg-001 2 # inserts relay into idx 2
+  mull add se-mma-wg-001 2  # inserts relay into idx 2
   ```
 
 - **`remove`**: Remove a relay from the list
@@ -129,7 +127,7 @@ The script maintains a local SQLite database of Mullvad servers for fast queryin
 
   mull up 1  # activate relay in idx position `1`
 
-  mull up se-mma-wg-001 # activate relay
+  mull up se-mma-wg-001  # activate relay
   ```
 
 - **`down`**: Deactivate a relay
@@ -190,7 +188,7 @@ The script maintains a local SQLite database of Mullvad servers for fast queryin
     - `-h, --help`: Show help message
   - **Example**
   ```bash
-  mull active --status # prints status for all active relays using `wg show interfaces`
+  mull active --status  # prints status for all active relays using `wg show interfaces`
   ```
 
 
