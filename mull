@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+
+import configparser
+import os
+import sys
+from cli import build_parser
+from ops import update_database
+from config import DATABASE_PATH
+
+## ------------- LOAD DEFAULTS FROM CONF FILE ------------- ##
+
+script_location = os.path.realpath(sys.argv[0])    # actual location where the script resides
+BASE_DIR        = os.path.dirname(script_location) # get directory of the real script (not the symlink location)
+CONFIG_PATH     = os.path.join(BASE_DIR, 'defaults.conf')
+
+if not os.path.exists(CONFIG_PATH):
+    raise FileNotFoundError(f"{CONFIG_PATH} not found!")
+
+config = configparser.ConfigParser()
+config.read(CONFIG_PATH)
+
+
+def main():
+
+    # If first time running script or database file is missing
+    if not os.path.exists(DATABASE_PATH):
+        print(f"Database not found at `{DATABASE_PATH}`, creating...")
+        update_database()
+
+    # Build and get parser args
+    parser = build_parser()
+    args   = parser.parse_args()
+
+    # Call subcommand
+    if hasattr(args, 'func'):
+        args.func(args)   
+    else:
+        print("No valid subcommand provided.")
+        parser.print_help()
+
+if __name__ == "__main__":
+    main()

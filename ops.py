@@ -1,0 +1,530 @@
+import configparser
+import subprocess
+import sqlite3
+import sys
+import re
+import os
+
+## ------------- LOAD DEFAULTS FROM CONF FILE ------------- ##
+
+from config import (
+    CONFIG, BASE_DIR, CONFIG_PATH,
+    DATABASE_PATH, DEFAULT_RELAYS,
+    INIT_DB_PATH, TORRENT_CLIENTS
+    )
+
+LEN_DEFAULTS = len(DEFAULT_RELAYS)
+
+## ------------- UTILITY FUNCTIONS ------------- ##
+
+def _validate_relay(relay):
+    '''
+    Ensures relay str is in the right format (ab-cde-fg-123).
+    '''
+    pattern = r'^[a-zA-Z]{2}-[a-zA-Z]{3}-[a-zA-Z]{2}-\d{3}$'    
+    return re.match(pattern, relay)
+
+
+def _write_relays_to_conf(DEFAULT_RELAYS):
+    '''
+    Writes default relays to .conf file.
+    '''
+    CONFIG['RELAYS'] = {i:relay for i, relay in enumerate(DEFAULT_RELAYS)}
+    with open(CONFIG_PATH, 'w') as configfile:
+        CONFIG.write(configfile)   
+        
+def _green_str(string):
+    return f"\033[32m{string}\033[0m"
+
+def _red_str(string):
+    return f"\033[31m{string}\033[0m"
+
+def _orange_str(string):
+    return f"\033[38;5;214m{string}\033[0m"
+
+def _blue_str(string):
+    return f"\033[34m{string}\033[0m"
+
+def _yellow_str(string):
+    # return f"\033[33m{string}\033[0m" # dull yellow
+    return f"\033[93m{string}\033[0m" # bright yellow
+
+
+## ------------- VIEWING & MODIFYING DEFAULT RELAYS ------------- ##
+
+
+def add_default_relay(args):
+    '''
+    Adds relay to default relay list and saves list to .conf file.
+    '''
+    relay = args.relay.lower()
+    
+    if _validate_relay(relay):
+        if isinstance(args.position, int):
+            DEFAULT_RELAYS.insert(args.position, relay)
+        else:
+            DEFAULT_RELAYS.append(relay.lower())                    
+        _write_relays_to_conf(DEFAULT_RELAYS) 
+        print(_green_str(f"`{relay}` added successfully"))
+    else:
+        print(f"[ERROR] Cannot append to default list, `{relay}` is not in the right format (ab-cde-fg-123)")
+
+
+def remove_default_relay(args):
+    '''
+    Removes relay from default relay list and saves list to .conf file.
+    '''
+    relay = args.relay
+    len_defaults = len(DEFAULT_RELAYS)
+    if relay.isdigit():
+        relay = int(relay)
+        if relay < len_defaults:
+            relay = DEFAULT_RELAYS.pop(relay)
+            _write_relays_to_conf(DEFAULT_RELAYS)   # save to conf
+            print(_green_str(f"Relay `{relay}` removed successfully."))
+        else:
+            print("list index out of range")    
+    elif _validate_relay(relay):
+        DEFAULT_RELAYS.remove(relay)
+        _write_relays_to_conf(DEFAULT_RELAYS)       # save to conf
+        print(_green_str(f"Relay `{relay}` removed successfully."))    
+    else:
+        print(f"Relay `{relay}` not found.")
+
+
+def swap_default_relays(args):
+    '''
+    Swaps index position of two relays in the default relay list and saves list to .conf file.
+    '''
+    idx1, idx2 = args.index1, args.index2
+    try:
+        DEFAULT_RELAYS[idx1], DEFAULT_RELAYS[idx2] = DEFAULT_RELAYS[idx2], DEFAULT_RELAYS[idx1]
+        print(_green_str(f"Swaped relays at positions {idx1} and {idx2}."))
+        _write_relays_to_conf(DEFAULT_RELAYS)
+    except IndexError:
+        print("Invalid indices. Ensure they are within range.")  
+
+
+def print_defaults(args):
+    '''
+    Prints the default relays
+    '''    
+    if len(DEFAULT_RELAYS):
+        for i, relay in enumerate(DEFAULT_RELAYS):
+            print(f"{i} : {relay}")
+    else:
+        print("No default relays found, add relay using `append <relay>`")
+
+
+
+## ------------- ACTIVATE / DEACTIVATE & CONNECTION INFO ------------- ##
+
+def _is_integer(string):
+    '''Check if string is an (+-) integer'''
+    return True if re.match(r"^-?\d+$", string) else False
+
+def _fetch_relay_from_defaults(relay): #digit
+    '''Fetch relay from default list using digit and return as list.''' 
+    idx = int(relay)
+    if idx < LEN_DEFAULTS:
+        return DEFAULT_RELAYS[idx] 
+    else:
+        print(f"[ERROR] `{idx}` is larger than items in list `{LEN_DEFAULTS}`")
+        exit()
+
+def _get_active_relays():
+    '''
+    Returns all the active interfaces (relays) via `wg show`.
+    '''
+    print("Getting active relays, sudo password may be required...")
+    try:
+        result = subprocess.run(
+            ['sudo', 'wg', 'show', 'interfaces'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            check=True
+        )
+        interfaces = result.stdout.strip().split()
+        return interfaces
+        
+    except subprocess.CalledProcessError as e:
+        print(f"[ERROR] Failed to get interfaces: {e.stdout.strip()}")
+    except Exception as e:
+        print(f"Unexpected error: {e}")  
+
+def _is_torrenting():
+    '''
+    Check for running torrent software.
+    '''
+    try:
+        ps_output = subprocess.check_output(['ps', 'aux'], text=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running 'ps aux': {e}", file=sys.stderr) # using sys.stderr bc not part of running shell command
+        return "error"
+    
+    for line in ps_output.splitlines():
+        if any(client.lower() in line.lower() for client in TORRENT_CLIENTS):
+            return True
+        else:
+            return False
+
+
+def handle_relay(args):
+    '''
+    Activate / Deactive a relay, or deactivate all activated relays (with --all flag).
+    ex: mull down --all
+    ''' 
+    relay = args.relay
+
+    if args.action == 'up':
+
+        if relay is None:
+            if LEN_DEFAULTS:
+                relay = DEFAULT_RELAYS[0]
+            else:
+                print("Must provide a relay hostname if there are no relays in the defaults list")
+                exit()                
+        elif _is_integer(relay):
+            relay = _fetch_relay_from_defaults(relay)
+
+        relays = [relay]
+
+    elif args.action == 'down':    
+        
+        if relay is not None:       # Hostname provided
+            if _is_integer(relay):   
+                relays = [_fetch_relay_from_defaults(relay)]
+            else:
+                relays = [relay]
+        else:                       # No hostname provided
+            interfaces = _get_active_relays()
+            if interfaces:
+                if getattr(args, 'all'): # multiple interfaces active
+                    relays = interfaces[::-1]
+                else:
+                    relays = [interfaces[-1]]
+            else:
+                print("No active relays detected")
+                exit() 
+        
+        # Double check user wants to deactivate when torrenting
+        torrenting = _is_torrenting()
+        if torrenting:
+            s = {
+                True   : "Torrenting detected, are you sure you want to deactivate VPN? y/n ",            
+                "error": "An error occured while trying to detect torrenting activity, continue to deactivate VPN? y/n "
+            }[torrenting]
+            user_input = input(_orange_str(s))
+            if user_input != 'y':
+                print("Exiting...")
+                exit() 
+   
+    # Activate / Deactivate
+    for relay in relays:
+        
+        if _validate_relay(relay): 
+            try:
+                result = subprocess.run(
+                    ['sudo', 'wg-quick', args.action, relay],
+                    stdout=subprocess.PIPE,   # Capture stdout
+                    stderr=subprocess.STDOUT, # Combine stderr with stdout
+                    text=True,                # Get output as text (string)
+                    check=True                # Raise CalledProcessError if command fails
+                )
+        
+                print(_green_str(f"{'Activated' if args.action == 'up' else 'Deactivated'}: {relay}"))                
+                
+                if args.verbose: 
+                    print(result.stdout)  # prints `wg-quick` output
+
+            except subprocess.CalledProcessError as e:
+                print(f"[ERROR] wg-quick failed with code {e.returncode}")
+                print(f"Output: {e.output or e.stdout}")
+                print(f"Error:  {e.stderr or 'No error output available'}")
+            except Exception as e:
+                print(f"Unexpected error: {e}")
+                # traceback.print_exc() # need import traceback
+        else:
+            print(f"[ERROR] `{relay}` is not in the right format (ab-cde-fg-123)")
+
+
+def check_relay_status(args):
+    '''
+    Checks relay status via `wg show`.
+    '''
+    # `args` here can be a str (if coming from `list_active_relays()`) or Namespace 
+    # `args.relay` can be a list if called from `status` subcommand or str
+    relay = (
+        args if isinstance(args, str) 
+        else args.relay[0] if isinstance(args.relay, list) 
+        else args.relay
+    )
+    
+    if relay is None:
+        print("[STATUS ERROR] no relay provided, must provide hostname")
+        print("[INFO] to get status of all active relays `mull active --status`")
+        exit()
+
+    if not _validate_relay(relay):
+        print(f"[STATUS ERROR] `{relay}` is not in the right format (ab-cde-fg-123)")
+        exit()
+        
+    try:
+        result = subprocess.run(
+            ['sudo', 'wg', 'show', relay],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+
+        if result.returncode == 0:
+            print("-" * 60)
+            print(result.stdout)
+            print("-" * 60)
+            print()
+        else:
+            print(f"[STATUS ERROR] Could not retrieve status for `{relay}`")
+            print(f"[WG] {result.stdout}")
+
+    except Exception as e:
+        print(f"Unexpected error checking status: {e}")
+
+
+def list_active_relays(args):
+    '''
+    Lists all active relays.
+    '''
+    interfaces = _get_active_relays()
+    
+    if not interfaces:
+        print("No active WireGuard interfaces.")
+    else:
+        # print("Active Relays:\n")
+        for iface in interfaces:
+            print(f"🟢 {iface}")
+            if args.status:
+                check_relay_status(iface)
+
+
+
+## ------------- DATABASE FETCHING AND QUERYING ------------- ##
+   
+def _get_connection():
+    '''
+    Connects to local database where Mullvad server info is stored.
+    '''
+    conn = sqlite3.connect(DATABASE_PATH) # 'relays.db'
+    conn.row_factory = sqlite3.Row # if doing this for all queries (reutrns a column : value)
+    return conn
+
+
+def update_database(args=None):
+    '''
+    Fetches the current Mullvad server information and updates local database.
+    '''
+    try:
+        result = subprocess.run(['python', INIT_DB_PATH], capture_output=True, text=True)
+
+        # Check if the script was successful
+        if result.returncode == 0:
+            print("Database updated successfully")
+        else:
+            print(f"Error updating database:\n{result.stderr}")
+
+    except Exception as e:
+        print(f"Error running the script: {e}")
+
+
+def _print_query_col_header(default_columns: dict):
+    '''Prints the default query columns to build the table.'''
+    print(
+        ''.join(f"{col.upper():<{width}} " 
+        for col, width in default_columns.items())
+        )
+
+def _print_query_row_values(row_query_dict: dict, default_columns: dict):
+    '''Prints query result (single row).'''
+    vals = []
+    for col, val in row_query_dict.items():
+        width = default_columns[col]
+        if val is not None:
+            if col == 'hostname':
+                val = _yellow_str(val)
+                vals.append(f"{val:<{width}} ")                
+            else:
+                vals.append(f"{val:<{width}} ")                
+        else:
+            vals.append('None ')
+    print(''.join(vals))
+
+
+def fetch_relay_info(args):
+    '''
+    Fetch server info for hostname.    
+    '''
+    # Columns to print and their output widths
+    default_columns = {
+        "country_name" : 15, "city_name": 20, "active" : 8, 
+        "owned" : 6, "daita" : 6, #"type" : 10,
+        "status_messages" : 1,
+        }
+
+    relay = args.relay
+
+    if _is_integer(relay):   
+        relay = _fetch_relay_from_defaults(relay)
+        default_columns = dict(hostname=13) | default_columns
+
+    conn  = _get_connection()
+    cur   = conn.cursor()
+    
+    # Join the list into a comma-separated string for the SELECT clause
+    columns_str = ", ".join(default_columns.keys())
+    
+    # Default search query
+    default_query = f"""
+    SELECT {columns_str}
+    FROM relays
+    WHERE hostname = ?;
+    """
+    # Execute query
+    cur.execute(default_query, (relay,))
+    default_results = cur.fetchone()
+
+    if not default_results:
+        print("Hostname not found")
+        exit()
+
+    # Convert to dict
+    default_results = dict(default_results)
+
+    # Print header (column names) and values (server info)
+    _print_query_col_header(default_columns)
+    _print_query_row_values(default_results, default_columns)
+    print()
+
+    # Print additional info
+    if args.verbose:
+
+        # Relay Tpye
+        relay_type = default_results["type"]
+        meta_table = {
+            "wireguard" : "wireguard_info", 
+            "bridge"    : "bridge_info"
+            }[relay_type]
+        
+        # Get the list of all column names in relays table
+        cur.execute("PRAGMA table_info(relays);")
+        all_columns = [col[1] for col in cur.fetchall()]  # col[1] contains the column names
+        
+        # Exclude the columns from default_columns lists
+        additional_cols = [col for col in all_columns if col not in default_columns and col != "hostname"]
+        additional_cols = ", ".join(additional_cols)
+       
+        meta_query = f"""
+        SELECT {additional_cols}, {meta_table}.*
+        FROM relays
+        JOIN {meta_table}
+          ON relays.hostname = {meta_table}.hostname
+        WHERE relays.hostname = ?;
+        """
+        cur.execute(meta_query, (relay,))
+        meta_results = cur.fetchone()
+
+        # Print additional relay info
+        for k, v in dict(meta_results).items():
+            print(f"{k:<22} ",v)
+
+    cur.close()
+    conn.close()
+
+
+def query_database(args):
+    """
+    Handle general filtering queries (e.g., --country us --city nyc).
+
+    For country and city, can query using either:
+    - name (or part of name) 
+    - two letter country code
+
+    Note:
+    - If the provided `--country` argument is exactly two letters, it is assumed to be a country code and will be matched against the `country_code` column.
+    - If the `--city` argument is exactly three letters, it is treated as a city code and matched against the `city_code` column.
+    - Otherwise, the inputs are treated as partial names and matched using `LIKE` against `country_name` or `city_name`.
+    """
+    # Convert Namespace to dict
+    namespace_dict = vars(args)
+
+    # for country and city we have `country_name`, `country_code`, `city_name` and `city_code`
+    if getattr(args, 'country'):
+        country_key = "country_code" if len(args.country) == 2 else "country_name"
+        namespace_dict[country_key] = namespace_dict.pop('country')
+    
+    if getattr(args, 'city'):
+        city_key = "city_code" if len(args.city) == 3 else "city_name"
+        namespace_dict[city_key] = namespace_dict.pop('city')
+    
+    # Filter available while removing ['func']
+    query_params = {
+        k:v for k,v in namespace_dict.items()
+        if v is not None and k != 'func'
+    }
+    
+    # Catch empty query
+    if not query_params:
+        print("No query provided. Exiting...")
+        exit()
+
+    # Build the base of the query
+    query = "SELECT * FROM relays WHERE "
+    
+    # Create a list of conditions and values based on the dictionary keys
+    conditions = []
+    values     = []
+
+    for key, value in query_params.items():
+        if key in ['country_name', 'city_name']:
+            conditions.append(f"{key} COLLATE NOCASE LIKE ?")
+            values.append(f"%{value}%")
+        else:
+            conditions.append(f"{key} COLLATE NOCASE = ?")
+            values.append(value)
+
+    # Join all conditions with 'AND'
+    query += " AND ".join(conditions)
+    
+    # Conect to DB   
+    conn = _get_connection()
+    cur  = conn.cursor()
+    
+    # Execute the query with the values from the dictionary
+    cur.execute(query, tuple(values))
+    
+    # Fetch the results
+    results = cur.fetchall()
+    
+    if not results:
+        print("No results found matching specified query")
+        exit()
+
+    # Columns to print and their output widths 
+    default_columns = {
+        "hostname": 13, "country_name" : 15, "city_name": 20, 
+        "active" : 8, "owned" : 6, "daita" : 6, #"type" : 10,
+        "status_messages" : 1,
+        }
+
+    # Print column headers
+    _print_query_col_header(default_columns) 
+
+    # Print the results for the default columns
+    for row in results:
+        # Creates `col`:`value` pairs from each Sqlite3.Row object only for desired display columns
+        row_data  = {col: row[col] for col in default_columns if col in dict(row)}
+        # Get column values and combine into a single string
+        _print_query_row_values(row_data, default_columns)
+
+    # Close the connection
+    cur.close()
+    conn.close()
