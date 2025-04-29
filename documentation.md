@@ -207,8 +207,15 @@ The script maintains a local SQLite database of Mullvad servers for fast queryin
     - `--type <type>`: Filter by relay type (Wireguard or Bridge)
     - `--daita <0|1>`: Filter by Daita (Defense Against AI-guided Traffic Analysis)
     - `-h, --help`: Show help message
+  - **Example**
+  ```bash
+  mull query --country usa
 
-> Note: for country and city, if 2 let
+  mull query --active 1      # get all currently operational relays
+  ```
+
+
+> Note: for country and city
 >    - If the provided `--country` argument is exactly two letters, it is assumed to be a country code and will be matched against the `country_code` column.
 >    - If the `--city` argument is exactly three letters, it is treated as a city code and matched against the `city_code` column.
 >    - Otherwise, the inputs are treated as partial names and matched using `LIKE` against `country_name` or `city_name`.
