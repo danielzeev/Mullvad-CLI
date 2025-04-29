@@ -100,6 +100,3 @@ def build_parser():
     query_parser.set_defaults(func=query_database)
 
     return parser
-
-
-# "type":      {"flags": ["--type"],          "type": str,  "help": "Wireguard or Bridge", "metavar": ""},
