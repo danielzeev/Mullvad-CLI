@@ -16,7 +16,7 @@ Designed for Linux distros where the Mullvad app is not __officially supported__
 - Python 3.6+ (standard library only)
 - SQLite3 (for the relay database), which is usually packaged with the python installation
 - wg, wg-quick (from WireGuard), [install instructions](https://www.wireguard.com/install/)
-- Linux system (tested on Void Linux)
+- Linux system (tested on [Void Linux](https://voidlinux.org/))
 - Wireguard configuration files (saved in `/etc/wireguard/`) as described in the [man pages](https://www.man7.org/linux/man-pages/man8/wg-quick.8.html)
 
 ## Installation
@@ -32,8 +32,8 @@ chmod +x mull
 ```
 3) Make `mull` command accessible from anywhere
 
-You can save the `Mullvad-CLI` directory anywhere but you will need to symlink the `mull` file to a directory in your `PATH` like `~/bin/` or `/usr/local/bin/`. 
-> If you move to `~/bin/` make sure it is in your `PATH` (`echo $PATH`). If it’s not, add this to your shell config (e.g. `.bashrc` or `.zshrc`):
+You can save the `Mullvad-CLI` directory anywhere but you will need to symlink the `mull` file to a directory in your `PATH` like `~/bin` or `/usr/local/bin`. 
+> If you move to `~/bin` make sure it is in your `PATH` (`echo $PATH`). If it’s not, add this to your shell config (e.g. `.bashrc` or `.zshrc`):
 > ```bash
 > export PATH="$HOME/bin:$PATH"
 > ```

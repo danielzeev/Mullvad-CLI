@@ -18,7 +18,7 @@ Designed for Linux distros where the Mullvad app is not __officially supported__
 - Python 3.6+ (standard library only)
 - SQLite3 (for the relay database), which is usually packaged with the python installation
 - wg, wg-quick (from WireGuard), [install instructions](https://www.wireguard.com/install/)
-- Linux system (tested on Void Linux)
+- Linux system (tested on [Void Linux](https://voidlinux.org/))
 - Wireguard configuration files (saved in `/etc/wireguard/`) as described in the [man pages](https://www.man7.org/linux/man-pages/man8/wg-quick.8.html)
 
 ## Installation
@@ -34,13 +34,13 @@ chmod +x mull
 ```
 3) Make `mull` command accessible from anywhere
 
-- You can save the `Mullvad-CLI` directory anywhere but you will need to symlink the `mull` file to a directory in your `PATH` like `~/bin/` or `/usr/local/bin/`. 
-> If you move to `~/bin/` add this to your shell config (e.g. `.bashrc` or `.zshrc`) if `~/bin/` is not in your `PATH`:
+You can save the `Mullvad-CLI` directory anywhere but you will need to symlink the `mull` file to a directory in your `PATH` like `~/bin` or `/usr/local/bin`. 
+> If you move to `~/bin` make sure it is in your `PATH` (`echo $PATH`). If it’s not, add this to your shell config (e.g. `.bashrc` or `.zshrc`):
 > ```bash
 > export PATH="$HOME/bin:$PATH"
 > ```
 
-- To __symlink__ to `~/bin`:
+- To __symlink__ to `~/bin/`:
 ```bash
 ln -s /full/path/to/Mullvad-CLI/mull ~/bin/mull
 ```
@@ -68,7 +68,7 @@ Commands:
     info (i)            Display info for a specific relay
     status              Check the status of a relay
     active              List active relays
-    query (q)           Query database with filters:
+    query (q)           Query database with filters
 
 Query Options:
     -C, --country   Country filter (code or name, partial match allowed)
@@ -90,6 +90,3 @@ Query Options:
 
 ### Query Database
 ![query](assets/query.gif)
-
-
-## License
