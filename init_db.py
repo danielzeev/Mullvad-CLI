@@ -8,11 +8,6 @@ import os
 
 from config import CONFIG, BASE_DIR, DATABASE_PATH
 
-
-### --- IF USING THIS VERSION, REMOVE `TYPE` FROM QUERY OUTPUT --- ###
-
-
-
 ## -----------  RETRIEVE DATA FROM MULLVAD ----------- ##
 
 RELAYS_URL = "https://api.mullvad.net/www/relays/all/"
