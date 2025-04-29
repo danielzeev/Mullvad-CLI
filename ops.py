@@ -60,7 +60,10 @@ def add_default_relay(args):
     relay = args.relay.lower()
     
     if _validate_relay(relay):
-        if isinstance(args.position, int):
+        if relay in DEFAULT_RELAYS:
+            print(f"Relay `{relay}` already in list")
+            exit()
+        elif isinstance(args.position, int):
             DEFAULT_RELAYS.insert(args.position, relay)
         else:
             DEFAULT_RELAYS.append(relay.lower())                    
