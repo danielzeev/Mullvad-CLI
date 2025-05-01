@@ -35,9 +35,9 @@ chmod +x mull
 3) Make `mull` command accessible from anywhere
 
 You can save the `Mullvad-CLI` directory anywhere but you will need to symlink the `mull` file to a directory in your `PATH` like `~/bin` or `/usr/local/bin`. 
-> If you move to `~/bin` make sure it is in your `PATH` (`echo $PATH`). If it’s not, add this to your shell config (e.g. `.bashrc` or `.zshrc`):
+> You can check if the directory is in `PATH` by: `$ echo $PATH`, add if it isn't add this to your shell config (e.g. `.bashrc` or `.zshrc`):
 > ```bash
-> export PATH="$HOME/bin:$PATH"
+> export PATH="$HOME/bin:$PATH"  # if adding `~/bin` to PATH
 > ```
 
 - To __symlink__ to `~/bin`:
@@ -88,4 +88,7 @@ Query Options:
 ![Info](assets/info.gif)
 
 ### Query Database
+![query](assets/query.gif)
+
+### Torrenting Prompt for VPN Shutdown
 ![query](assets/query.gif)
