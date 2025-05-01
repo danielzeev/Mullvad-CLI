@@ -151,6 +151,10 @@ The script maintains a local SQLite database of Mullvad servers for fast queryin
   mull down --all         # deactivate all active relays
   ```
 
+>Note: torrent activity is checked by searching for the torrent client in the running processes
+>via `ps aux` 
+
+
 ### Information & Status
 
 - **`update`**: Update the server database
