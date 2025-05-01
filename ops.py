@@ -165,12 +165,11 @@ def _is_torrenting():
     except subprocess.CalledProcessError as e:
         print(f"Error running 'ps aux': {e}", file=sys.stderr) # using sys.stderr bc not part of running shell command
         return "error"
-    
-    for line in ps_output.splitlines():
-        if any(client.lower() in line.lower() for client in TORRENT_CLIENTS):
+
+    for client in TORRENT_CLIENTS:
+        if client.lower() in ps_output.lower():
             return True
-        else:
-            return False
+    return False
 
 
 def handle_relay(args):
