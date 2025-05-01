@@ -409,13 +409,6 @@ def fetch_relay_info(args):
     # Print additional info
     if args.verbose:
 
-        # Relay Tpye
-        relay_type = default_results["type"]
-        meta_table = {
-            "wireguard" : "wireguard_info", 
-            "bridge"    : "bridge_info"
-            }[relay_type]
-        
         # Get the list of all column names in relays table
         cur.execute("PRAGMA table_info(relays);")
         all_columns = [col[1] for col in cur.fetchall()]  # col[1] contains the column names
@@ -424,18 +417,17 @@ def fetch_relay_info(args):
         additional_cols = [col for col in all_columns if col not in default_columns and col != "hostname"]
         additional_cols = ", ".join(additional_cols)
        
-        meta_query = f"""
-        SELECT {additional_cols}, {meta_table}.*
+        verbose_query = f"""
+        SELECT {additional_cols}
         FROM relays
-        JOIN {meta_table}
-          ON relays.hostname = {meta_table}.hostname
-        WHERE relays.hostname = ?;
+        WHERE hostname = ?;
         """
-        cur.execute(meta_query, (relay,))
-        meta_results = cur.fetchone()
+
+        cur.execute(verbose_query, (relay,))
+        verbose_results = cur.fetchone()
 
         # Print additional relay info
-        for k, v in dict(meta_results).items():
+        for k, v in dict(verbose_results).items():
             print(f"{k:<22} ",v)
 
     cur.close()
