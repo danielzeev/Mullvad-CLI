@@ -91,4 +91,4 @@ Query Options:
 ![query](assets/query.gif)
 
 ### Torrenting Prompt for VPN Shutdown
-![query](assets/query.gif)
+![query](assets/torrenting.gif)
