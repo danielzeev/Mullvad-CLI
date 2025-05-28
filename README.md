@@ -1,7 +1,8 @@
 # 🛡️ Mullvad-CLI: Mullvad CLI Wrapper for WireGuard (Linux)
 
-A lightweight command-line Python interface to manage Mullvad VPN connections using WireGuard on Linux systems.  
-Designed for Linux distros where the Mullvad app is **_not_** officially supported.
+A lightweight command-line Python interface to manage Mullvad VPN connections using WireGuard on Linux systems. Designed for Linux distros where the Mullvad app is **_not_** officially supported.
+
+See the [Examples](#examples) section below for usage demonstrations
 
 ---
 
@@ -117,6 +118,7 @@ See [Documentation](documentation.md) for detailed command info.
 
 ---
 
+
 ## 🔎 Examples
 
 ### Handling Relays
@@ -134,8 +136,3 @@ See [Documentation](documentation.md) for detailed command info.
 ### Torrenting Prompt for VPN Shutdown
 
 ![Torrenting](assets/torrenting.gif)
-
-```
-
-
-
