@@ -2,7 +2,7 @@
 
 A lightweight command-line Python interface to manage Mullvad VPN connections using WireGuard on Linux systems. Designed for Linux distros where the Mullvad app is **_not_** officially supported.
 
-See the [Examples](#examples) section below for usage demonstrations
+See the [Examples](#🔎-examples) section below for usage demonstrations
 
 ---
 
