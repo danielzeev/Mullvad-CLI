@@ -4,6 +4,8 @@ A lightweight command-line Python interface to manage Mullvad VPN connections us
 
 See the [Examples](#🔎-examples) section below for usage demonstrations
 
+Mullvad-CLI was built to make managing Mullvad VPN connections on Linux faster and more convenient. Instead of manually typing `# wg-quick up <relay>` to activate a connection, this tool lets you maintain a favorites list, activate relays instantly, and handle everything from a clean command-line interface. It also includes torrent protection to prevent accidental VPN shutdown while torrenting, and maintains a local relay database for fast filtering and selection.
+
 ---
 
 ## ✨ Features
@@ -110,7 +112,6 @@ Query Options:
     --provider          Provider filter  
     --active            Active status (0 or 1)  
     --owned             Ownership status (0 or 1)  
-    --type              Relay type (WireGuard or Bridge)  
     --daita             DAITA enabled (0 or 1)  
 ```
 
