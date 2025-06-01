@@ -51,6 +51,22 @@ def _yellow_str(string):
     return f"\033[93m{string}\033[0m" # bright yellow
 
 
+def _resolve_relay_argument(args):
+    """
+    Helper function to resolve relay from either direct name, defaults index, or results index.
+    """
+    if hasattr(args, 'results') and args.results is not None:
+        return _get_relay_from_results(args.results) # returns a relay name
+    elif hasattr(args, 'relay') and args.relay is not None:
+        if _is_integer(args.relay):
+            relay = _fetch_relay_from_defaults(args.relay)
+        else:
+            relay = args.relay
+        return relay
+    else:
+        return None  # Let the original command handle missing relay
+
+
 ## ------------- VIEWING & MODIFYING DEFAULT RELAYS ------------- ##
 
 
@@ -58,7 +74,7 @@ def add_default_relay(args):
     '''
     Adds relay to default relay list and saves list to .conf file.
     '''
-    relay = args.relay.lower()
+    relay = _resolve_relay_argument(args)
     
     if _validate_relay(relay):
         if relay in DEFAULT_RELAYS:
@@ -178,7 +194,7 @@ def handle_relay(args):
     Activate / Deactive a relay, or deactivate all activated relays (with --all flag).
     ex: mull down --all
     ''' 
-    relay = args.relay
+    relay = _resolve_relay_argument(args)
 
     if args.action == 'up':
 
@@ -417,7 +433,7 @@ def fetch_relay_info(args):
         "active" : 8, "owned" : 6, "daita" : 6, "status_messages" : 1,
         }
 
-    relay = args.relay
+    relay = _resolve_relay_argument(args)
 
     if _is_integer(relay):   
         relay = _fetch_relay_from_defaults(relay)
