@@ -1,3 +1,4 @@
 __pycache__/
 relays.db
 defaults.conf
+query_results.txt
