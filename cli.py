@@ -3,7 +3,7 @@ from ops import DEFAULT_RELAYS
 from ops import (
     add_default_relay, swap_default_relays, remove_default_relay,
     print_defaults, handle_relay, check_relay_status, list_active_relays,  
-    update_database, fetch_relay_info, query_database
+    update_database, fetch_relay_info, query_database, print_query_results
 )
 
 def build_parser():
@@ -65,6 +65,10 @@ def build_parser():
     info_parser.add_argument('relay', type=str, help="Relay hostname to show info for")
     info_parser.add_argument('-v', '--verbose', action='store_true', help="Print additional relay data")
     info_parser.set_defaults(func=fetch_relay_info)
+
+    # 'results' subcommand to print the hostnames from the saved query results
+    results_parser = subparsers.add_parser('results', help='Print hostname results from saved query')
+    results_parser.set_defaults(func=print_query_results)
 
     # 'status' subcommand to get connection info for a specific relay
     status_parser = subparsers.add_parser('status', help='Check the status of a relay')

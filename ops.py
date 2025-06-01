@@ -381,6 +381,13 @@ def _get_relay_from_results(index):
     return hostnames[index]
 
 
+def print_query_results(args=None):
+    '''Prints saved query results (hostnames).''' 
+    hostnames = _load_query_results()
+    header_cols = {"IDX": 4, "hostname": 13}
+    _print_query_col_header(header_cols)    
+    for idx, relay in enumerate(hostnames):        
+        print(f"{idx:<4} {_yellow_str(relay):<13}")
 
 
 def update_database(args=None):
