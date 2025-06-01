@@ -56,7 +56,7 @@ def _resolve_relay_argument(args):
     Helper function to resolve relay from either direct name, defaults index, or results index.
     """
     if hasattr(args, 'results') and args.results is not None:
-        return _get_relay_from_results(args.results) # returns a relay name
+        return _get_relay_from_results(args.results)
     elif hasattr(args, 'relay') and args.relay is not None:
         if _is_integer(args.relay):
             relay = _fetch_relay_from_defaults(args.relay)

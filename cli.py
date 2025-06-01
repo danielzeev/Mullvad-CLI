@@ -15,29 +15,28 @@ def build_parser():
 
     subparsers = parser.add_subparsers(title="Commands")
 
-    # Commmon arguments for `up` and `down` subcommands
-    common_args = {
-        "dest" : "relay",
-        "type" : str,
-        "nargs" : "?",
-       }
-
     # 'up' subcommand to activate the relay
     up_parser = subparsers.add_parser('up', help="Activate relay")
-    up_parser.add_argument(**common_args)
+    up_relay_group = up_parser.add_mutually_exclusive_group()
+    up_relay_group.add_argument('relay', type=str, nargs='?', help="Relay hostname to activate")
+    up_relay_group.add_argument('-r', '--results', type=int, metavar='N', help="Use relay at index N from query results")
     up_parser.add_argument('-v', '--verbose', action='store_true', help='Enable output from wg-quick')
     up_parser.set_defaults(func=handle_relay, action='up')
 
     # 'down' subcommand to deactivate the relay
     down_parser = subparsers.add_parser('down', help="Deactivate relay")
-    down_parser.add_argument(**common_args)
+    down_relay_group = down_parser.add_mutually_exclusive_group()
+    down_relay_group.add_argument('relay', type=str, nargs='?', help="Relay hostname to deactivate")
+    down_relay_group.add_argument('-r', '--results', type=int, metavar='N', help="Use relay at index N from query results")
     down_parser.add_argument('-v', '--verbose', action='store_true', help='Enable output from wg-quick')
     down_parser.add_argument('--all', action='store_true', help='Disables all active relays')
     down_parser.set_defaults(func=handle_relay, action='down')
 
     # 'add' subcommand to add a new relay to the default relay list either by appending or inserting at pos <idx>
     add_parser = subparsers.add_parser('add', help="Add relay hostname to default relays list", aliases=['a'])
-    add_parser.add_argument('relay', type=str, help="Relay to add to the default relay list")
+    add_relay_group = add_parser.add_mutually_exclusive_group(required=True)
+    add_relay_group.add_argument('relay', type=str, nargs='?', help="Relay hostname to add")
+    add_relay_group.add_argument('-r', '--results', type=int, metavar='N', help="Add relay at index N from query results")
     add_parser.add_argument('position', type=int, help="Index position to insert relay", nargs='?')
     add_parser.set_defaults(func=add_default_relay)
 
@@ -62,7 +61,9 @@ def build_parser():
 
     # 'info' subcommand to get database info for a specific relay
     info_parser = subparsers.add_parser('info', help="Display info for a specific relay", aliases=['i'])
-    info_parser.add_argument('relay', type=str, help="Relay hostname to show info for")
+    info_relay_group = info_parser.add_mutually_exclusive_group(required=True)
+    info_relay_group.add_argument('relay', type=str, nargs='?', help="Relay hostname to show info for")
+    info_relay_group.add_argument('-r', '--results', type=int, metavar='N', help="Show info for relay at index N from query results")
     info_parser.add_argument('-v', '--verbose', action='store_true', help="Print additional relay data")
     info_parser.set_defaults(func=fetch_relay_info)
 
