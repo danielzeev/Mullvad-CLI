@@ -406,9 +406,8 @@ def fetch_relay_info(args):
     '''
     # Columns to print and their output widths
     default_columns = {
-        "country_name" : 15, "city_name": 20, "active" : 8, 
-        "owned" : 6, "daita" : 6, #"type" : 10,
-        "status_messages" : 1,
+        "hostname": 13, "country_name" : 15, "city_name": 20, 
+        "active" : 8, "owned" : 6, "daita" : 6, "status_messages" : 1,
         }
 
     relay = args.relay
@@ -543,18 +542,17 @@ def query_database(args):
 
     # Columns to print and their output widths 
     default_columns = {
-        "hostname": 13, "country_name" : 15, "city_name": 20, 
-        "active" : 8, "owned" : 6, "daita" : 6, #"type" : 10,
-        "status_messages" : 1,
+        "IDX": 4, "hostname": 13, "country_name" : 15, "city_name": 20, 
+        "active" : 8, "owned" : 6, "daita" : 6, "status_messages" : 1,
         }
 
     # Print column headers
     _print_query_col_header(default_columns) 
 
     # Print the results for the default columns
-    for row in results:
+    for idx, row in enumerate(results):
         # Creates `col`:`value` pairs from each Sqlite3.Row object only for desired display columns
-        row_data  = {col: row[col] for col in default_columns if col in dict(row)}
+        row_data  = {"IDX" : idx} | {col: row[col] for col in default_columns if col in dict(row)}
         # Get column values and combine into a single string
         _print_query_row_values(row_data, default_columns)
 
