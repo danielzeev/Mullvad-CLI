@@ -20,10 +20,13 @@ LEN_DEFAULTS = len(DEFAULT_RELAYS)
 
 def _validate_relay(relay):
     '''
-    Ensures relay str is in the right format (ab-cde-fg-123).
+    Ensures relay str is in the right format.
+    `ab-cde-fg-123` for single hop
+    `abcd123-efgh456` for multi hop
     '''
-    pattern = r'^[a-zA-Z]{2}-[a-zA-Z]{3}-[a-zA-Z]{2}-\d{3}$'    
-    return re.match(pattern, relay)
+    single = r'^[a-zA-Z]{2}-[a-zA-Z]{3}-[a-zA-Z]{2}-\d{3}$'
+    multi  = r'^[a-z]{4}\d{3}-[a-z]{4}\d{3}$'
+    return re.match(single, relay) or re.match(multi, relay)
 
 
 def _write_relays_to_conf(DEFAULT_RELAYS):
