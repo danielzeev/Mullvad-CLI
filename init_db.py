@@ -12,13 +12,6 @@ from config import CONFIG, BASE_DIR, DATABASE_PATH
 
 RELAYS_URL = "https://api.mullvad.net/www/relays/all/"
 
-# # Ensure database is reset (optional)
-# if os.path.exists(DATABASE_PATH):
-#     os.remove(DATABASE_PATH)
-
-# Get the server list data
-response = requests.get(RELAYS_URL)
-
 try:
     response = requests.get(RELAYS_URL, timeout=10)
     response.raise_for_status()
