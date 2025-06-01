@@ -13,6 +13,7 @@ from config import (
     INIT_DB_PATH, TORRENT_CLIENTS
     )
 
+QUERY_RESULTS_FILE_PATH = "./query_results.txt"
 LEN_DEFAULTS = len(DEFAULT_RELAYS)
 
 ## ------------- UTILITY FUNCTIONS ------------- ##
@@ -321,6 +322,67 @@ def _get_connection():
     return conn
 
 
+def _print_query_col_header(default_columns: dict):
+    '''Prints the query column names.'''
+    print(
+        ''.join(f"{col.upper():<{width}} " 
+        for col, width in default_columns.items())
+        )
+
+def _print_query_row_values(row_query_dict: dict, default_columns: dict):
+    '''Prints single row from query result.'''
+    vals = []
+    for col, val in row_query_dict.items():
+        width = default_columns[col]
+        if val is not None:
+            if col == 'hostname':
+                val = _yellow_str(val)
+                vals.append(f"{val:<{width}} ")                
+            else:
+                vals.append(f"{val:<{width}} ")                
+        else:
+            vals.append('None ')
+    print(''.join(vals))
+
+
+def _write_query_results(query_results):
+    '''
+    Writes sqlite query result hostnames to file.
+    '''
+    with open(QUERY_RESULTS_FILE_PATH, "w") as f:
+        hostnames = [result["hostname"] for result in query_results]
+        f.write('\n'.join(hostnames))
+
+
+def _load_query_results(): 
+    """Load and return query results from file."""
+    if not os.path.exists(QUERY_RESULTS_FILE_PATH):
+        raise TypeError(
+            f"Query results file not found: {QUERY_RESULTS_FILE_PATH}. Run 'mull query' first."
+        )    
+    try:
+        with open(QUERY_RESULTS_FILE_PATH, 'r') as f:
+            hostnames = f.read().splitlines()
+    except Exception as e:
+        raise TypeError(f"Error reading query results: {e}")
+    
+    if not isinstance(hostnames, list) or len(hostnames) == 0:
+        raise TypeError("No query results available.")
+    
+    return hostnames
+
+
+def _get_relay_from_results(index): 
+    """Get relay name from query results at specified index."""
+    hostnames = _load_query_results()
+    if index >= len(hostnames):
+        print(f"Index {index} out of range. Available indices: 0-{len(hostnames)-1}")    
+        exit()
+    return hostnames[index]
+
+
+
+
 def update_database(args=None):
     '''
     Fetches the current Mullvad server information and updates local database.
@@ -336,29 +398,6 @@ def update_database(args=None):
 
     except Exception as e:
         print(f"Error running the script: {e}")
-
-
-def _print_query_col_header(default_columns: dict):
-    '''Prints the default query columns to build the table.'''
-    print(
-        ''.join(f"{col.upper():<{width}} " 
-        for col, width in default_columns.items())
-        )
-
-def _print_query_row_values(row_query_dict: dict, default_columns: dict):
-    '''Prints query result (single row).'''
-    vals = []
-    for col, val in row_query_dict.items():
-        width = default_columns[col]
-        if val is not None:
-            if col == 'hostname':
-                val = _yellow_str(val)
-                vals.append(f"{val:<{width}} ")                
-            else:
-                vals.append(f"{val:<{width}} ")                
-        else:
-            vals.append('None ')
-    print(''.join(vals))
 
 
 def fetch_relay_info(args):
@@ -518,6 +557,9 @@ def query_database(args):
         row_data  = {col: row[col] for col in default_columns if col in dict(row)}
         # Get column values and combine into a single string
         _print_query_row_values(row_data, default_columns)
+
+    # Write hostname results to file
+    _write_query_results(query_results=results)
 
     # Close the connection
     cur.close()
