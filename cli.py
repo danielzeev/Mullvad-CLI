@@ -2,8 +2,9 @@ import argparse
 from ops import DEFAULT_RELAYS
 from ops import (
     add_default_relay, swap_default_relays, remove_default_relay,
-    print_defaults, handle_relay, check_relay_status, list_active_relays,  
-    update_database, fetch_relay_info, query_database, print_query_results
+    print_defaults, handle_up, handle_down, check_relay_status, 
+    update_database, fetch_relay_info, query_database, print_query_results,
+    move_default_relay
 )
 
 def build_parser():
@@ -21,16 +22,12 @@ def build_parser():
     up_relay_group.add_argument('relay', type=str, nargs='?', help="Relay hostname to activate")
     up_relay_group.add_argument('-r', '--results', type=int, metavar='N', help="Use relay at index N from query results")
     up_parser.add_argument('-v', '--verbose', action='store_true', help='Enable output from wg-quick')
-    up_parser.set_defaults(func=handle_relay, action='up')
+    up_parser.set_defaults(func=handle_up, action='up')
 
     # 'down' subcommand to deactivate the relay
     down_parser = subparsers.add_parser('down', help="Deactivate relay")
-    down_relay_group = down_parser.add_mutually_exclusive_group()
-    down_relay_group.add_argument('relay', type=str, nargs='?', help="Relay hostname to deactivate")
-    down_relay_group.add_argument('-r', '--results', type=int, metavar='N', help="Use relay at index N from query results")
     down_parser.add_argument('-v', '--verbose', action='store_true', help='Enable output from wg-quick')
-    down_parser.add_argument('--all', action='store_true', help='Disables all active relays')
-    down_parser.set_defaults(func=handle_relay, action='down')
+    down_parser.set_defaults(func=handle_down, action='down')
 
     # 'add' subcommand to add a new relay to the default relay list either by appending or inserting at pos <idx>
     add_parser = subparsers.add_parser('add', help="Add relay hostname to default relays list", aliases=['a'])
@@ -47,9 +44,15 @@ def build_parser():
 
     # 'swap' subcommand to swap relays positions within the default relay list
     swap_parser = subparsers.add_parser('swap', help="Swap position of two relays within the default relays list")
-    swap_parser.add_argument('index1', type=int, help="First relay's index to swap")
-    swap_parser.add_argument('index2', type=int, help="Second relay's index to swap")
+    swap_parser.add_argument('index1', type=int, help="Relay index to move")
+    swap_parser.add_argument('index2', type=int, help="Index to insert")
     swap_parser.set_defaults(func=swap_default_relays)
+
+    # 'move' subcommand to swap relays positions within the default relay list
+    move_parser = subparsers.add_parser('move', help="Swap position of two relays within the default relays list")
+    move_parser.add_argument('index1', type=int, help="First relay's index to swap")
+    move_parser.add_argument('index2', type=int, help="Second relay's index to swap")
+    move_parser.set_defaults(func=move_default_relay)
 
     # 'defaults' subcommand to print the default relay list - display other data?
     defaults_parser = subparsers.add_parser('defaults', help="Print default relays list (aliases: 'd')", aliases=['d'])
@@ -73,14 +76,9 @@ def build_parser():
 
     # 'status' subcommand to get connection info for a specific relay
     status_parser = subparsers.add_parser('status', help='Check the status of a relay')
-    status_parser.add_argument('relay', type=str, nargs=1, help='Relay hostname. To get status of all active relays `mull active --status`')
+    status_parser.add_argument('-v', '--verbose', action='store_true', help="Print additional relay data")
     status_parser.set_defaults(func=check_relay_status)
 
-    # 'active' subcommand to get all active relay connections
-    active_parser = subparsers.add_parser('active', help='List active relays')
-    active_parser.add_argument('-s', '--status', action='store_true', help='Display status for active relays (from wg show)')
-    active_parser.set_defaults(func=list_active_relays)
-    
     # 'query' subcommand to query the database
     query_parser = subparsers.add_parser('query', help="Query database, see `query -h` for options", aliases=["q"])
     

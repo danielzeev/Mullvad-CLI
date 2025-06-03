@@ -1,5 +1,6 @@
 import configparser
 import subprocess
+import requests
 import sqlite3
 import sys
 import re
@@ -28,15 +29,25 @@ def _validate_relay(relay):
     multi  = r'^[a-z]{4}\d{3}-[a-z]{4}\d{3}$'
     return re.match(single, relay) or re.match(multi, relay)
 
-
 def _write_relays_to_conf(DEFAULT_RELAYS):
-    '''
-    Writes default relays to .conf file.
-    '''
+    '''Writes default relays to .conf file'''
     CONFIG['RELAYS'] = {i:relay for i, relay in enumerate(DEFAULT_RELAYS)}
     with open(CONFIG_PATH, 'w') as configfile:
         CONFIG.write(configfile)   
-        
+
+def _is_integer(string):
+    '''Check if string is an (+-) integer'''
+    return True if re.match(r"^-?\d+$", string) else False
+  
+def _fetch_relay_from_defaults(relay): #digit
+    '''Fetch relay from default (favorites) list using idx''' 
+    idx = int(relay)
+    if idx < LEN_DEFAULTS:
+        return DEFAULT_RELAYS[idx] 
+    else:
+        print(f"[ERROR] `{idx}` is larger than items in list `{LEN_DEFAULTS}`")
+        sys.exit()
+
 def _green_str(string):
     return f"\033[32m{string}\033[0m"
 
@@ -54,35 +65,18 @@ def _yellow_str(string):
     return f"\033[93m{string}\033[0m" # bright yellow
 
 
-def _resolve_relay_argument(args):
-    """
-    Helper function to resolve relay from either direct name, defaults index, or results index.
-    """
-    if hasattr(args, 'results') and args.results is not None:
-        return _get_relay_from_results(args.results)
-    elif hasattr(args, 'relay') and args.relay is not None:
-        if _is_integer(args.relay):
-            relay = _fetch_relay_from_defaults(args.relay)
-        else:
-            relay = args.relay
-        return relay
-    else:
-        return None  # Let the original command handle missing relay
-
-
 ## ------------- VIEWING & MODIFYING DEFAULT RELAYS ------------- ##
 
 
 def add_default_relay(args):
-    '''
-    Adds relay to default relay list and saves list to .conf file.
-    '''
+    '''Adds relay to default relay list and saves list to .conf file'''
+
     relay = _resolve_relay_argument(args)
     
     if _validate_relay(relay):
         if relay in DEFAULT_RELAYS:
             print(f"Relay `{relay}` already in list")
-            exit()
+            sys.exit()
         elif isinstance(args.position, int):
             DEFAULT_RELAYS.insert(args.position, relay)
         else:
@@ -94,9 +88,7 @@ def add_default_relay(args):
 
 
 def remove_default_relay(args):
-    '''
-    Removes relay from default relay list and saves list to .conf file.
-    '''
+    '''Removes relay from default relay list and saves list to .conf file'''
     relay = args.relay
     len_defaults = len(DEFAULT_RELAYS)
     if relay.isdigit():
@@ -114,11 +106,9 @@ def remove_default_relay(args):
     else:
         print(f"Relay `{relay}` not found.")
 
-
 def swap_default_relays(args):
-    '''
-    Swaps index position of two relays in the default relay list and saves list to .conf file.
-    '''
+    '''Swaps index position of two relays in the default relay list and saves list to .conf file'''
+
     idx1, idx2 = args.index1, args.index2
     try:
         DEFAULT_RELAYS[idx1], DEFAULT_RELAYS[idx2] = DEFAULT_RELAYS[idx2], DEFAULT_RELAYS[idx1]
@@ -127,6 +117,14 @@ def swap_default_relays(args):
     except IndexError:
         print("Invalid indices. Ensure they are within range.")  
 
+def move_default_relay(args):
+    '''Move relay to another index position in the default relay list'''
+    try:
+        DEFAULT_RELAYS.insert(args.index2, DEFAULT_RELAYS.pop(args.index1))
+        print(_green_str(f"Moved relay at position {args.index1} to {args.index2}."))
+        _write_relays_to_conf(DEFAULT_RELAYS)
+    except IndexError:
+        print("Invalid indices. Ensure they are within range.") 
 
 def print_defaults(args):
     '''
@@ -140,25 +138,10 @@ def print_defaults(args):
 
 
 
-## ------------- ACTIVATE / DEACTIVATE & CONNECTION INFO ------------- ##
-
-def _is_integer(string):
-    '''Check if string is an (+-) integer'''
-    return True if re.match(r"^-?\d+$", string) else False
-
-def _fetch_relay_from_defaults(relay): #digit
-    '''Fetch relay from default list using digit and return as list.''' 
-    idx = int(relay)
-    if idx < LEN_DEFAULTS:
-        return DEFAULT_RELAYS[idx] 
-    else:
-        print(f"[ERROR] `{idx}` is larger than items in list `{LEN_DEFAULTS}`")
-        exit()
+## ------------- CONNECTION INFO ------------- ##
 
 def _get_active_relays():
-    '''
-    Returns all the active interfaces (relays) via `wg show`.
-    '''
+    '''Returns all active interface (relay) via `wg show`'''
     print("Getting active relays, sudo password may be required...")
     try:
         result = subprocess.run(
@@ -176,10 +159,87 @@ def _get_active_relays():
     except Exception as e:
         print(f"Unexpected error: {e}")  
 
+def _get_mullvad_connection_check_info():
+    '''Returns mullvad connection check info'''
+    MULLVAD_CHECK_URL = "https://am.i.mullvad.net/json"
+    try:
+        response = requests.get(MULLVAD_CHECK_URL, timeout=5)
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        print(f"Error fetching relays data: {e}")
+        exit(1)
+
+def _print_connection_check_info(response):
+    '''Print output of mullvad connection check: https://mullvad.net/en/check'''
+    keys = [
+        'ip', 'country', 'city', 'mullvad_exit_ip', 
+        'mullvad_exit_ip_hostname', 'blacklisted', 'organization'
+        ]
+    key_width = 18
+    for key in keys:
+        val = response.get(key, 'Key not found')
+        if key == 'blacklisted':
+            val = val['blacklisted']
+        elif key == 'mullvad_exit_ip_hostname':
+            key = 'mullvad_hostname'
+        padded_key = f"{key:<{key_width}}" 
+        print(f"{_yellow_str(padded_key)}: {val}")
+
+
+def check_relay_status(args): 
+    '''Checks relay status via mullvad api and `wg show` when used with `-v` flag'''
+    response = _get_mullvad_connection_check_info()
+    if not response.get('mullvad_exit_ip'):
+        print("No active relay found")
+        sys.exit()    
+    else:
+        _print_connection_check_info(response)
+        
+        if args.verbose:
+            relay = response.get('mullvad_exit_ip_hostname')
+
+            if not _validate_relay(relay):
+                print(f"[FORMAT ERROR] `{relay}` is not in the right format (ab-cde-fg-123)")
+                sys.exit()
+                
+            try:
+                result = subprocess.run(
+                    ['sudo', 'wg', 'show', relay],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True
+                )
+
+                if result.returncode == 0:
+                    print()
+                    print("-" * 60)
+                    print(result.stdout)
+                    print("-" * 60)
+                else:
+                    print(f"[STATUS ERROR] Could not retrieve status for `{relay}`")
+                    print(f"[WG] {result.stdout}")
+
+            except Exception as e:
+                print(f"Unexpected error checking status: {e}")
+
+## ------------- ACTIVATE / DEACTIVATE RELAYS ------------- ##
+
+def _resolve_relay_argument(args):
+    """Helper function to resolve relay from either direct name, defaults index, or results index"""
+    if hasattr(args, 'results') and args.results is not None:
+        return _get_relay_from_results(args.results)
+    elif hasattr(args, 'relay') and args.relay is not None:
+        if _is_integer(args.relay):
+            relay = _fetch_relay_from_defaults(args.relay)
+        else:
+            relay = args.relay
+        return relay
+    else:
+        return None  # Let the original command handle missing relay
+
 def _is_torrenting():
-    '''
-    Check for running torrent software.
-    '''
+    '''Check for running torrent software'''
     try:
         ps_output = subprocess.check_output(['ps', 'aux'], text=True)
     except subprocess.CalledProcessError as e:
@@ -192,149 +252,83 @@ def _is_torrenting():
     return False
 
 
-def handle_relay(args):
-    '''
-    Activate / Deactive a relay, or deactivate all activated relays (with --all flag).
-    ex: mull down --all
-    ''' 
-    relay = _resolve_relay_argument(args)
+def _handle_relay(args, relay):
+    '''Handles activation/deactivation of relay'''
+    msg = {'up' : 'Activated', 'down' : 'Deactivated'}
 
-    if args.action == 'up':
+    if _validate_relay(relay): 
+        try:
+            result = subprocess.run(
+                ['sudo', 'wg-quick', args.action, relay],
+                stdout=subprocess.PIPE,   # Capture stdout
+                stderr=subprocess.STDOUT, # Combine stderr with stdout
+                text=True,                # Get output as text (string)
+                check=True                # Raise CalledProcessError if command fails
+            )
 
-        if relay is None:
-            if LEN_DEFAULTS:
-                relay = DEFAULT_RELAYS[0]
-            else:
-                print("Must provide a relay hostname if there are no relays in the defaults list")
-                exit()                
-        elif _is_integer(relay):
-            relay = _fetch_relay_from_defaults(relay)
+            print(_green_str(f"{msg[args.action]}: {relay}"))                
+            
+            if args.verbose: 
+                print(result.stdout)  # prints `wg-quick` output
 
-        relays = [relay]
-
-    elif args.action == 'down':    
-        
-        if relay is not None:       # Hostname provided
-            if _is_integer(relay):   
-                relays = [_fetch_relay_from_defaults(relay)]
-            else:
-                relays = [relay]
-        else:                       # No hostname provided
-            interfaces = _get_active_relays()
-            if interfaces:
-                if getattr(args, 'all'): # multiple interfaces active
-                    relays = interfaces[::-1]
-                else:
-                    relays = [interfaces[-1]]
-            else:
-                print("No active relays detected")
-                exit() 
-        
-        # Double check user wants to deactivate when torrenting
-        torrenting = _is_torrenting()
-        if torrenting:
-            s = {
-                True   : "Torrenting detected, are you sure you want to deactivate VPN? y/n ",            
-                "error": "An error occured while trying to detect torrenting activity, continue to deactivate VPN? y/n "
-            }[torrenting]
-            user_input = input(_orange_str(s))
-            if user_input != 'y':
-                print("Exiting...")
-                exit() 
-   
-    # Activate / Deactivate
-    for relay in relays:
-        
-        if _validate_relay(relay): 
-            try:
-                result = subprocess.run(
-                    ['sudo', 'wg-quick', args.action, relay],
-                    stdout=subprocess.PIPE,   # Capture stdout
-                    stderr=subprocess.STDOUT, # Combine stderr with stdout
-                    text=True,                # Get output as text (string)
-                    check=True                # Raise CalledProcessError if command fails
-                )
-        
-                print(_green_str(f"{'Activated' if args.action == 'up' else 'Deactivated'}: {relay}"))                
-                
-                if args.verbose: 
-                    print(result.stdout)  # prints `wg-quick` output
-
-            except subprocess.CalledProcessError as e:
-                print(f"[ERROR] wg-quick failed with code {e.returncode}")
-                print(f"Output: {e.output or e.stdout}")
-                print(f"Error:  {e.stderr or 'No error output available'}")
-            except Exception as e:
-                print(f"Unexpected error: {e}")
-                # traceback.print_exc() # need import traceback
-        else:
-            print(f"[ERROR] `{relay}` is not in the right format (ab-cde-fg-123)")
-
-
-def check_relay_status(args):
-    '''
-    Checks relay status via `wg show`.
-    '''
-    # `args` here can be a str (if coming from `list_active_relays()`) or Namespace 
-    # `args.relay` can be a list if called from `status` subcommand or str
-    relay = (
-        args if isinstance(args, str) 
-        else args.relay[0] if isinstance(args.relay, list) 
-        else args.relay
-    )
-    
-    if relay is None:
-        print("[STATUS ERROR] no relay provided, must provide hostname")
-        print("[INFO] to get status of all active relays `mull active --status`")
-        exit()
-
-    if not _validate_relay(relay):
-        print(f"[STATUS ERROR] `{relay}` is not in the right format (ab-cde-fg-123)")
-        exit()
-        
-    try:
-        result = subprocess.run(
-            ['sudo', 'wg', 'show', relay],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True
-        )
-
-        if result.returncode == 0:
-            print("-" * 60)
-            print(result.stdout)
-            print("-" * 60)
-            print()
-        else:
-            print(f"[STATUS ERROR] Could not retrieve status for `{relay}`")
-            print(f"[WG] {result.stdout}")
-
-    except Exception as e:
-        print(f"Unexpected error checking status: {e}")
-
-
-def list_active_relays(args):
-    '''
-    Lists all active relays.
-    '''
-    interfaces = _get_active_relays()
-    
-    if not interfaces:
-        print("No active WireGuard interfaces.")
+        except subprocess.CalledProcessError as e:
+            print(f"[ERROR] wg-quick failed with code {e.returncode}")
+            print(f"Output: {e.output or e.stdout}")
+            print(f"Error:  {e.stderr or 'No error output available'}")
+        except Exception as e:
+            print(f"Unexpected error: {e}")
     else:
-        # print("Active Relays:\n")
-        for iface in interfaces:
-            print(f"🟢 {iface}")
-            if args.status:
-                check_relay_status(iface)
+        print(f"[FORMAT ERROR] `{relay}` is not in the right format (ab-cde-fg-123)")
 
+
+def handle_up(args): ############################################################################ try when not connected
+    '''Connect to relay'''
+    connection_info = _get_mullvad_connection_check_info()
+    if connection_info.get('mullvad_exit_ip'):
+        print("A relay is already active, please deactivate first using `mull down`")
+        sys.exit()
+
+    relay = _resolve_relay_argument(args)
+    
+    # Fallback to default relay if no relay was provided
+    if not relay:
+        if DEFAULT_RELAYS:
+            relay = DEFAULT_RELAYS[0]
+            print(f"No relay specified, using default: {relay}")
+        else:
+            print("No relay specified and no defaults available. Provide a relay hostname.")
+            sys.exit(1)
+    
+    _handle_relay(args, relay)
+    
+
+def handle_down(args):
+    '''Disconnects active relay'''
+    # Double check user wants to deactivate when torrenting
+    torrenting = _is_torrenting()
+    if torrenting:
+        s = {
+            True   : "Torrenting detected, are you sure you want to deactivate VPN? y/n ",            
+            "error": "An error occured while trying to detect torrenting activity, continue to deactivate VPN? y/n "
+        }[torrenting]
+        user_input = input(_orange_str(s))
+        if user_input != 'y':
+            print("Exiting...")
+            sys.exit() 
+
+    interfaces = _get_active_relays()
+    if interfaces:
+        relay = interfaces[0]
+        _handle_relay(args, relay) # Deactivate
+    else:
+        print("No active relays detected")
+        sys.exit()         
 
 
 ## ------------- DATABASE FETCHING AND QUERYING ------------- ##
    
 def _get_connection():
-    '''
-    Connects to local database where Mullvad server info is stored.
+    '''    Connects to local database where Mullvad server info is stored.
     '''
     conn = sqlite3.connect(DATABASE_PATH) # 'relays.db'
     conn.row_factory = sqlite3.Row # if doing this for all queries (reutrns a column : value)
@@ -342,14 +336,14 @@ def _get_connection():
 
 
 def _print_query_col_header(default_columns: dict):
-    '''Prints the query column names.'''
+    '''Prints the query column names'''
     print(
         ''.join(f"{col.upper():<{width}} " 
         for col, width in default_columns.items())
         )
 
 def _print_query_row_values(row_query_dict: dict, default_columns: dict):
-    '''Prints single row from query result.'''
+    '''Prints single row from query result'''
     vals = []
     for col, val in row_query_dict.items():
         width = default_columns[col]
@@ -365,16 +359,14 @@ def _print_query_row_values(row_query_dict: dict, default_columns: dict):
 
 
 def _write_query_results(query_results):
-    '''
-    Writes sqlite query result hostnames to file.
-    '''
+    '''Writes sqlite query result hostnames to file'''
     with open(QUERY_RESULTS_FILE_PATH, "w") as f:
         hostnames = [result["hostname"] for result in query_results]
         f.write('\n'.join(hostnames))
 
 
 def _load_query_results(): 
-    """Load and return query results from file."""
+    """Load and return query results from file"""
     if not os.path.exists(QUERY_RESULTS_FILE_PATH):
         raise TypeError(
             f"Query results file not found: {QUERY_RESULTS_FILE_PATH}. Run 'mull query' first."
@@ -396,7 +388,7 @@ def _get_relay_from_results(index):
     hostnames = _load_query_results()
     if index >= len(hostnames):
         print(f"Index {index} out of range. Available indices: 0-{len(hostnames)-1}")    
-        exit()
+        sys.exit()
     return hostnames[index]
 
 
@@ -410,9 +402,7 @@ def print_query_results(args=None):
 
 
 def update_database(args=None):
-    '''
-    Fetches the current Mullvad server information and updates local database.
-    '''
+    '''Fetches the current Mullvad server information and updates local database'''
     try:
         result = subprocess.run(['python', INIT_DB_PATH], capture_output=True, text=True)
 
@@ -427,9 +417,8 @@ def update_database(args=None):
 
 
 def fetch_relay_info(args):
-    '''
-    Fetch server info for hostname.    
-    '''
+    '''Fetch server info for hostname'''
+
     # Columns to print and their output widths
     default_columns = {
         "hostname": 13, "country_name" : 15, "city_name": 20, 
@@ -460,7 +449,7 @@ def fetch_relay_info(args):
 
     if not default_results:
         print("Hostname not found")
-        exit()
+        sys.exit()
 
     # Convert to dict
     default_results = dict(default_results)
@@ -532,7 +521,7 @@ def query_database(args):
     # Catch empty query
     if not query_params:
         print("No query provided. Exiting...")
-        exit()
+        sys.exit()
 
     # Build the base of the query
     query = "SELECT * FROM relays WHERE "
@@ -564,7 +553,7 @@ def query_database(args):
     
     if not results:
         print("No results found matching specified query")
-        exit()
+        sys.exit()
 
     # Columns to print and their output widths 
     default_columns = {
