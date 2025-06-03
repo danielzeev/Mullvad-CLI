@@ -133,7 +133,7 @@ See [Documentation](documentation.md) for detailed command info.
 
 ### Relay Status
 
-![Status](status/info.gif)
+![Status](assets/status.gif)
 
 ### Query Database
 
