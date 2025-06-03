@@ -111,13 +111,18 @@ mull update
   ```
 
   * `relay`: Relay hostname to add
-  * `position` *(optional)*: Index to insert at (default appends)
+
+  *Options:*
+
+  * `position`       : Index to insert at (default appends)
+  * `-r, --results N`: Add relay at index `N` from query results
 
   *Example:*
 
   ```bash
   mull add se-mma-wg-001          # Append relay  
   mull add se-mma-wg-001 2        # Insert at index 2
+  mull add --results 2            # Appends the relay located at index 2 in the query results
   ```
 
 * **`remove`**
@@ -132,6 +137,19 @@ mull update
   ```bash
   mull remove se-mma-wg-001       # Remove by hostname  
   mull remove 2                   # Remove by index
+  ```
+
+* **`move`**
+  Move relay from one index to another in the default list:
+
+  ```bash
+  mull move <index1> <index2>
+  ```
+
+  *Example:*
+
+  ```bash
+  mull move 1 3                   # Move relay from index 1 to index 3
   ```
 
 * **`swap`**
@@ -163,14 +181,17 @@ mull update
 
   *Options:*
 
-  * `-v, --verbose`: Show detailed `wg-quick` output
-
+  * `-r, --results N`: Use relay at index `N` from query results
+  * `-v, --verbose`  : Show detailed `wg-quick` output
+  
   *Examples:*
 
   ```bash
   mull up                         # Activate first default relay  
   mull up 1                       # Activate relay at index 1  
   mull up se-mma-wg-001           # Activate by hostname
+  mull up --results 1             # Activate relay located at index 1 from the query results   
+  mull up --r 1                   # Activate relay located at index 1 from the query results
   ```
 
 * **`down`**
@@ -185,16 +206,12 @@ mull update
 
   *Options:*
 
-  * `--all`: Deactivate all active relays
   * `-v, --verbose`: Show detailed `wg-quick` output
 
   *Examples:*
 
   ```bash
-  mull down                      # Deactivate last active relay  
-  mull down 1                    # Deactivate relay at index 1  
-  mull down se-mma-wg-001        # Deactivate by hostname  
-  mull down --all                # Deactivate all active relays
+  mull down                      # Deactivate relay  
   ```
 
 > **Note:** Torrent activity is detected by scanning running processes for torrent clients listed in `defaults.conf`.
@@ -216,31 +233,27 @@ mull update
   ```bash
   mull info [options] <relay>
   ```
-
-  * `-v, --verbose`: Show extended details
-
-* **`status`**
-  Check WireGuard status for a relay:
-
-  ```bash
-  mull status <relay>
-  ```
-
-* **`active`**
-  List active relays:
-
-  ```bash
-  mull active [options]
-  ```
-
+  
   *Options:*
 
-  * `-s, --status`: Show WireGuard interface status
-
-  *Example:*
+  * `-v, --verbose`     : Show extended details
+  * `-r, --results N`   : Use relay at index `N` from query results
+ 
+  *Examples:*
 
   ```bash
-  mull active --status
+  mull info 1                       # Show info for relay at index 1 in the default list
+  mull info se-mma-wg-001           # Show info for relay se-mma-wg-001
+  mull info --results 1             # Show info for relay located at index 1 from the query results   
+  mull info --r 1                   # Show info for relay located at index 1 from the query results
+  mull info --r 1 -v                # Show extended info for relay located at index 1 from the query results
+  ```
+
+* **`status`**
+  Get connection info from mullvad check and WireGuard status (when used with `-v` flag):
+
+  ```bash
+  mull status
   ```
 
 ---
@@ -269,8 +282,10 @@ mull update
   *Examples:*
 
   ```bash
-  mull query --country usa  
-  mull query --active 1
+  mull query --country usa                # Search for relays from USA
+  mull query --country usa --city miami   # Search for relays from Miami, USA
+  mull query --active 1                   # Search for active (server on) relays
+  mull query --owned 0                    # Search for servers not owned by Mullvad  
   ```
 
 > **Notes on `--country` and `--city`:**

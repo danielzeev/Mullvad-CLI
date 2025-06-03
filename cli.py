@@ -44,14 +44,14 @@ def build_parser():
 
     # 'swap' subcommand to swap relays positions within the default relay list
     swap_parser = subparsers.add_parser('swap', help="Swap position of two relays within the default relays list")
-    swap_parser.add_argument('index1', type=int, help="Relay index to move")
-    swap_parser.add_argument('index2', type=int, help="Index to insert")
+    swap_parser.add_argument('index1', type=int, help="First relay's index to swap")
+    swap_parser.add_argument('index2', type=int, help="Second relay's index to swap")
     swap_parser.set_defaults(func=swap_default_relays)
 
     # 'move' subcommand to swap relays positions within the default relay list
-    move_parser = subparsers.add_parser('move', help="Swap position of two relays within the default relays list")
-    move_parser.add_argument('index1', type=int, help="First relay's index to swap")
-    move_parser.add_argument('index2', type=int, help="Second relay's index to swap")
+    move_parser = subparsers.add_parser('move', help="Move relay to another index position in the default relay list")
+    move_parser.add_argument('index1', type=int, help="Relay index to move")
+    move_parser.add_argument('index2', type=int, help="Index position to insert")
     move_parser.set_defaults(func=move_default_relay)
 
     # 'defaults' subcommand to print the default relay list - display other data?
@@ -75,7 +75,7 @@ def build_parser():
     results_parser.set_defaults(func=print_query_results)
 
     # 'status' subcommand to get connection info for a specific relay
-    status_parser = subparsers.add_parser('status', help='Check the status of a relay')
+    status_parser = subparsers.add_parser('status', help='Check the connection status of a relay')
     status_parser.add_argument('-v', '--verbose', action='store_true', help="Print additional relay data")
     status_parser.set_defaults(func=check_relay_status)
 

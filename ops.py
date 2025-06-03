@@ -281,7 +281,7 @@ def _handle_relay(args, relay):
         print(f"[FORMAT ERROR] `{relay}` is not in the right format (ab-cde-fg-123)")
 
 
-def handle_up(args): ############################################################################ try when not connected
+def handle_up(args):
     '''Connect to relay'''
     connection_info = _get_mullvad_connection_check_info()
     if connection_info.get('mullvad_exit_ip'):
@@ -294,7 +294,6 @@ def handle_up(args): ###########################################################
     if not relay:
         if DEFAULT_RELAYS:
             relay = DEFAULT_RELAYS[0]
-            print(f"No relay specified, using default: {relay}")
         else:
             print("No relay specified and no defaults available. Provide a relay hostname.")
             sys.exit(1)
@@ -482,7 +481,8 @@ def fetch_relay_info(args):
         # Print additional relay info
         for k, v in dict(verbose_results).items():
             print(f"{k:<22} ",v)
-
+        print()
+        
     cur.close()
     conn.close()
 

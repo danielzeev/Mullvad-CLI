@@ -96,14 +96,15 @@ to refresh the database.
 Commands:  
     up                  Activate relay  
     down                Deactivate relay  
+    defaults (d)        Print default relays list
     add (a)             Add relay hostname to default relays list  
     remove              Remove a relay (hostname or position)  
     swap                Swap position of two relays in default list  
-    defaults (d)        Print default relays list  
+    move                Move relay to another index position in the default relay list  
     update              Update the server database  
     info (i)            Display info for a relay  
-    status              Check relay status  
-    active              List active relays  
+    status              Check relay connection status  
+    results             Print hostnames from query
     query (q)           Query database with filters  
 
 Query Options:  
@@ -130,9 +131,17 @@ See [Documentation](documentation.md) for detailed command info.
 
 ![Info](assets/info.gif)
 
+### Relay Status
+
+![Status](status/info.gif)
+
 ### Query Database
 
 ![Query](assets/query.gif)
+
+### Pass Query Results to Command
+
+![Results](assets/results.gif)
 
 ### Torrenting Prompt for VPN Shutdown
 
