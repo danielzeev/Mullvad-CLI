@@ -123,6 +123,7 @@ mull update
   mull add se-mma-wg-001          # Append relay  
   mull add se-mma-wg-001 2        # Insert at index 2
   mull add --results 2            # Appends the relay located at index 2 in the query results
+  mull add -r 2                   # Appends the relay located at index 2 in the query results
   ```
 
 * **`remove`**
@@ -191,20 +192,17 @@ mull update
   mull up 1                       # Activate relay at index 1  
   mull up se-mma-wg-001           # Activate by hostname
   mull up --results 1             # Activate relay located at index 1 from the query results   
-  mull up --r 1                   # Activate relay located at index 1 from the query results
+  mull up -r 1                    # Activate relay located at index 1 from the query results
   ```
 
 * **`down`**
   Deactivate a relay:
 
   ```bash
-  mull down [options] <relay>
+  mull down [options]
   ```
 
-  * `<relay>` can be hostname or index.
-  * If no relay specified, deactivates the last activated relay (LIFO).
-
-  *Options:*
+    *Options:*
 
   * `-v, --verbose`: Show detailed `wg-quick` output
 
@@ -212,9 +210,11 @@ mull update
 
   ```bash
   mull down                      # Deactivate relay  
+  mull down -v                   # Deactivate relay and display `wg-quick` output
+  mull -v down                   # Deactivate relay and display `wg-quick` output
   ```
 
-> **Note:** Torrent activity is detected by scanning running processes for torrent clients listed in `defaults.conf`.
+> **Note:** Torrent activity is detected by scanning running processes via `ps aux` for torrent clients listed in `defaults.conf`.
 
 ---
 
@@ -245,8 +245,8 @@ mull update
   mull info 1                       # Show info for relay at index 1 in the default list
   mull info se-mma-wg-001           # Show info for relay se-mma-wg-001
   mull info --results 1             # Show info for relay located at index 1 from the query results   
-  mull info --r 1                   # Show info for relay located at index 1 from the query results
-  mull info --r 1 -v                # Show extended info for relay located at index 1 from the query results
+  mull info -r 1                    # Show info for relay located at index 1 from the query results
+  mull info -r 1 -v                 # Show extended info for relay located at index 1 from the query results
   ```
 
 * **`status`**
@@ -270,20 +270,23 @@ mull update
   *Options:*
 
   ```
+   -h, --help                  : Show the help message and exit
    -C, --country  <code|name>  : Filter by country code or name
    -c, --city     <code|name>  : Filter by city code or name
    --provider     <name>       : Filter by provider
    --active       <0|1>        : Filter by active status
    --owned        <0|1>        : Filter by ownership
    --daita        <0|1>        : Filter by DAITA enabled status
-   -h, --help                  : Show help message
   ```
   
   *Examples:*
 
   ```bash
   mull query --country usa                # Search for relays from USA
+  mull query -C usa                       # Search for relays from USA
   mull query --country usa --city miami   # Search for relays from Miami, USA
+  mull query -C usa -c miami              # Search for relays from Miami, USA
+  mull query -c miami                     # Search for relays from Miami, USA
   mull query --active 1                   # Search for active (server on) relays
   mull query --owned 0                    # Search for servers not owned by Mullvad  
   ```
