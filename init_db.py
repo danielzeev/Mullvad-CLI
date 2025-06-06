@@ -65,9 +65,7 @@ def _convert_message_to_str(status_message):
 
 
 def _normalize_text(text):
-    '''
-    Converts accented city and country names like Malmö to Malmo.
-    '''
+    """Converts accented city and country names like Malmö to Malmo."""
     return ''.join(
         # Normal form D (NFD) translates each character into its decomposed form
         c for c in unicodedata.normalize('NFD', text) 

@@ -107,23 +107,24 @@ mull update
   Add a relay to the default list:
 
   ```bash
-  mull add [options] <relay> [position]
+  mull add [options] <relay>
   ```
 
   * `relay`: Relay hostname to add
 
   *Options:*
 
-  * `position`       : Index to insert at (default appends)
-  * `-r, --results N`: Add relay at index `N` from query results
+  * `-r, --results N`  : Add relay at index `N` from query results
+  * `-p, --position P` : Index position (P) to insert relay
 
   *Example:*
 
   ```bash
   mull add se-mma-wg-001          # Append relay  
-  mull add se-mma-wg-001 2        # Insert at index 2
+  mull add se-mma-wg-001 -p 2     # Insert at index 2
   mull add --results 2            # Appends the relay located at index 2 in the query results
   mull add -r 2                   # Appends the relay located at index 2 in the query results
+  mull add -r 2 -p 1              # Insert the relay located at index 2 in the query results to position 1 in the defaults list
   ```
 
 * **`remove`**

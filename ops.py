@@ -20,27 +20,27 @@ LEN_DEFAULTS = len(DEFAULT_RELAYS)
 ## ------------- UTILITY FUNCTIONS ------------- ##
 
 def _validate_relay(relay):
-    '''
+    """
     Ensures relay str is in the right format.
     `ab-cde-fg-123` for single hop
     `abcd123-efgh456` for multi hop
-    '''
+    """
     single = r'^[a-zA-Z]{2}-[a-zA-Z]{3}-[a-zA-Z]{2}-\d{3}$'
     multi  = r'^[a-z]{4}\d{3}-[a-z]{4}\d{3}$'
     return re.match(single, relay) or re.match(multi, relay)
 
 def _write_relays_to_conf(DEFAULT_RELAYS):
-    '''Writes default relays to .conf file'''
+    """Writes default relays to .conf file."""
     CONFIG['RELAYS'] = {i:relay for i, relay in enumerate(DEFAULT_RELAYS)}
     with open(CONFIG_PATH, 'w') as configfile:
         CONFIG.write(configfile)   
 
 def _is_integer(string):
-    '''Check if string is an (+-) integer'''
+    """Check if string is an (+-) integer."""
     return True if re.match(r"^-?\d+$", string) else False
   
 def _fetch_relay_from_defaults(relay): #digit
-    '''Fetch relay from default (favorites) list using idx''' 
+    """Fetch relay from default (favorites) list using idx.""" 
     idx = int(relay)
     if idx < LEN_DEFAULTS:
         return DEFAULT_RELAYS[idx] 
@@ -51,33 +51,46 @@ def _fetch_relay_from_defaults(relay): #digit
 def _green_str(string):
     return f"\033[32m{string}\033[0m"
 
-def _red_str(string):
-    return f"\033[31m{string}\033[0m"
+def _yellow_str(string):
+    # return f"\033[33m{string}\033[0m" # dull yellow
+    return f"\033[93m{string}\033[0m" # bright yellow
 
 def _orange_str(string):
     return f"\033[38;5;214m{string}\033[0m"
 
-def _blue_str(string):
-    return f"\033[34m{string}\033[0m"
+# def _red_str(string):
+#     return f"\033[31m{string}\033[0m"
 
-def _yellow_str(string):
-    # return f"\033[33m{string}\033[0m" # dull yellow
-    return f"\033[93m{string}\033[0m" # bright yellow
+# def _blue_str(string):
+#     return f"\033[34m{string}\033[0m"
+
+
+def _resolve_relay_argument(args):
+    """Helper function to resolve relay from either direct name, defaults index, or results index."""
+    if hasattr(args, 'results') and args.results is not None:
+        return _get_relay_from_results(args.results)
+    elif hasattr(args, 'relay') and args.relay is not None:
+        if _is_integer(args.relay):
+            relay = _fetch_relay_from_defaults(args.relay)
+        else:
+            relay = args.relay
+        return relay
+    else:
+        return None  # Let the original command handle missing relay
 
 
 ## ------------- VIEWING & MODIFYING DEFAULT RELAYS ------------- ##
 
 
 def add_default_relay(args):
-    '''Adds relay to default relay list and saves list to .conf file'''
-
+    """Adds relay to default relay list and saves list to .conf file."""
     relay = _resolve_relay_argument(args)
-    
+
     if _validate_relay(relay):
         if relay in DEFAULT_RELAYS:
             print(f"Relay `{relay}` already in list")
             sys.exit()
-        elif isinstance(args.position, int):
+        elif args.position is not None and isinstance(args.position, int):
             DEFAULT_RELAYS.insert(args.position, relay)
         else:
             DEFAULT_RELAYS.append(relay.lower())                    
@@ -88,7 +101,7 @@ def add_default_relay(args):
 
 
 def remove_default_relay(args):
-    '''Removes relay from default relay list and saves list to .conf file'''
+    """Removes relay from default relay list and saves list to .conf file."""
     relay = args.relay
     len_defaults = len(DEFAULT_RELAYS)
     if relay.isdigit():
@@ -107,7 +120,7 @@ def remove_default_relay(args):
         print(f"Relay `{relay}` not found.")
 
 def swap_default_relays(args):
-    '''Swaps index position of two relays in the default relay list and saves list to .conf file'''
+    """Swaps index position of two relays in the default relay list and saves list to .conf file."""
 
     idx1, idx2 = args.index1, args.index2
     try:
@@ -118,7 +131,7 @@ def swap_default_relays(args):
         print("Invalid indices. Ensure they are within range.")  
 
 def move_default_relay(args):
-    '''Move relay to another index position in the default relay list'''
+    """Move relay to another index position in the default relay list."""
     try:
         DEFAULT_RELAYS.insert(args.index2, DEFAULT_RELAYS.pop(args.index1))
         print(_green_str(f"Moved relay at position {args.index1} to {args.index2}."))
@@ -127,9 +140,7 @@ def move_default_relay(args):
         print("Invalid indices. Ensure they are within range.") 
 
 def print_defaults(args):
-    '''
-    Prints the default relays
-    '''    
+    """Prints the default relays."""    
     if len(DEFAULT_RELAYS):
         for i, relay in enumerate(DEFAULT_RELAYS):
             print(f"{i} : {relay}")
@@ -141,7 +152,7 @@ def print_defaults(args):
 ## ------------- CONNECTION INFO ------------- ##
 
 def _get_active_relays():
-    '''Returns all active interface (relay) via `wg show`'''
+    """Returns all active interface (relay) via `wg show`."""
     print("Getting active relays, sudo password may be required...")
     try:
         result = subprocess.run(
@@ -160,7 +171,7 @@ def _get_active_relays():
         print(f"Unexpected error: {e}")  
 
 def _get_mullvad_connection_check_info():
-    '''Returns mullvad connection check info'''
+    """Returns mullvad connection check info."""
     MULLVAD_CHECK_URL = "https://am.i.mullvad.net/json"
     try:
         response = requests.get(MULLVAD_CHECK_URL, timeout=5)
@@ -171,7 +182,7 @@ def _get_mullvad_connection_check_info():
         exit(1)
 
 def _print_connection_check_info(response):
-    '''Print output of mullvad connection check: https://mullvad.net/en/check'''
+    """Print output of mullvad connection check: https://mullvad.net/en/check."""
     keys = [
         'ip', 'country', 'city', 'mullvad_exit_ip', 
         'mullvad_exit_ip_hostname', 'blacklisted', 'organization'
@@ -188,7 +199,7 @@ def _print_connection_check_info(response):
 
 
 def check_relay_status(args): 
-    '''Checks relay status via mullvad api and `wg show` when used with `-v` flag'''
+    """Checks relay status via mullvad api and `wg show` when used with `-v` flag."""
     response = _get_mullvad_connection_check_info()
     if not response.get('mullvad_exit_ip'):
         print("No active relay found")
@@ -225,21 +236,8 @@ def check_relay_status(args):
 
 ## ------------- ACTIVATE / DEACTIVATE RELAYS ------------- ##
 
-def _resolve_relay_argument(args):
-    """Helper function to resolve relay from either direct name, defaults index, or results index"""
-    if hasattr(args, 'results') and args.results is not None:
-        return _get_relay_from_results(args.results)
-    elif hasattr(args, 'relay') and args.relay is not None:
-        if _is_integer(args.relay):
-            relay = _fetch_relay_from_defaults(args.relay)
-        else:
-            relay = args.relay
-        return relay
-    else:
-        return None  # Let the original command handle missing relay
-
 def _is_torrenting():
-    '''Check for running torrent software'''
+    """Check for running torrent software."""
     try:
         ps_output = subprocess.check_output(['ps', 'aux'], text=True)
     except subprocess.CalledProcessError as e:
@@ -253,7 +251,7 @@ def _is_torrenting():
 
 
 def _handle_relay(args, relay):
-    '''Handles activation/deactivation of relay'''
+    """Handles activation/deactivation of relay."""
     msg = {'up' : 'Activated', 'down' : 'Deactivated'}
 
     if _validate_relay(relay): 
@@ -282,7 +280,7 @@ def _handle_relay(args, relay):
 
 
 def handle_up(args):
-    '''Connect to relay'''
+    """Connect to relay."""
     connection_info = _get_mullvad_connection_check_info()
     if connection_info.get('mullvad_exit_ip'):
         print("A relay is already active, please deactivate first using `mull down`")
@@ -302,7 +300,7 @@ def handle_up(args):
     
 
 def handle_down(args):
-    '''Disconnects active relay'''
+    """Disconnects active relay."""
     # Double check user wants to deactivate when torrenting
     torrenting = _is_torrenting()
     if torrenting:
@@ -327,22 +325,21 @@ def handle_down(args):
 ## ------------- DATABASE FETCHING AND QUERYING ------------- ##
    
 def _get_connection():
-    '''    Connects to local database where Mullvad server info is stored.
-    '''
+    """Connects to local database where Mullvad server info is stored."""
     conn = sqlite3.connect(DATABASE_PATH) # 'relays.db'
     conn.row_factory = sqlite3.Row # if doing this for all queries (reutrns a column : value)
     return conn
 
 
 def _print_query_col_header(default_columns: dict):
-    '''Prints the query column names'''
+    """Prints the query column names."""
     print(
         ''.join(f"{col.upper():<{width}} " 
         for col, width in default_columns.items())
         )
 
 def _print_query_row_values(row_query_dict: dict, default_columns: dict):
-    '''Prints single row from query result'''
+    """Prints single row from query result."""
     vals = []
     for col, val in row_query_dict.items():
         width = default_columns[col]
@@ -358,14 +355,14 @@ def _print_query_row_values(row_query_dict: dict, default_columns: dict):
 
 
 def _write_query_results(query_results):
-    '''Writes sqlite query result hostnames to file'''
+    """Writes sqlite query result hostnames to file."""
     with open(QUERY_RESULTS_FILE_PATH, "w") as f:
         hostnames = [result["hostname"] for result in query_results]
         f.write('\n'.join(hostnames))
 
 
 def _load_query_results(): 
-    """Load and return query results from file"""
+    """Load and return query results from file."""
     if not os.path.exists(QUERY_RESULTS_FILE_PATH):
         raise TypeError(
             f"Query results file not found: {QUERY_RESULTS_FILE_PATH}. Run 'mull query' first."
@@ -392,7 +389,7 @@ def _get_relay_from_results(index):
 
 
 def print_query_results(args=None):
-    '''Prints saved query results (hostnames).''' 
+    """Prints saved query results (hostnames).""" 
     hostnames = _load_query_results()
     header_cols = {"IDX": 4, "hostname": 13}
     _print_query_col_header(header_cols)    
@@ -401,7 +398,7 @@ def print_query_results(args=None):
 
 
 def update_database(args=None):
-    '''Fetches the current Mullvad server information and updates local database'''
+    """Fetches the current Mullvad server information and updates local database."""
     try:
         result = subprocess.run(['python', INIT_DB_PATH], capture_output=True, text=True)
 
@@ -416,7 +413,7 @@ def update_database(args=None):
 
 
 def fetch_relay_info(args):
-    '''Fetch server info for hostname'''
+    """Fetch server info for hostname."""
 
     # Columns to print and their output widths
     default_columns = {

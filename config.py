@@ -50,8 +50,3 @@ try:
     TORRENT_CLIENTS = [client.strip() for client in TORRENT_CLIENTS.split('|') if client.strip()]
 except:
     TORRENT_CLIENTS = ['qbittorrent', 'transmission', 'deluge', 'fragments', 'ktorrent']
-
-
-
-
-

@@ -34,7 +34,7 @@ def build_parser():
     add_relay_group = add_parser.add_mutually_exclusive_group(required=True)
     add_relay_group.add_argument('relay', type=str, nargs='?', help="Relay hostname to add")
     add_relay_group.add_argument('-r', '--results', type=int, metavar='N', help="Add relay at index N from query results")
-    add_parser.add_argument('position', type=int, help="Index position to insert relay", nargs='?')
+    add_parser.add_argument('-p', '--position', metavar='P', type=int, help="Index position (P) to insert relay")
     add_parser.set_defaults(func=add_default_relay)
 
     # 'remove' subcommand to remove a relay from the default relay list
