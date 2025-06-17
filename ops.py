@@ -11,10 +11,11 @@ import os
 from config import (
     CONFIG, BASE_DIR, CONFIG_PATH,
     DATABASE_PATH, DEFAULT_RELAYS,
-    INIT_DB_PATH, TORRENT_CLIENTS
+    INIT_DB_PATH, TORRENT_CLIENTS,
+    QUERY_RESULTS_FILE_PATH
     )
 
-QUERY_RESULTS_FILE_PATH = "./query_results.txt"
+
 LEN_DEFAULTS = len(DEFAULT_RELAYS)
 
 ## ------------- UTILITY FUNCTIONS ------------- ##
