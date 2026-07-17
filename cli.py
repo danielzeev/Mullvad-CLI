@@ -4,7 +4,7 @@ from ops import (
     add_default_relay, swap_default_relays, remove_default_relay,
     print_defaults, handle_up, handle_down, check_relay_status, 
     update_database, fetch_relay_info, query_database, print_query_results,
-    move_default_relay
+    move_default_relay, activate_random_relay
 )
 
 def build_parser():
@@ -79,9 +79,12 @@ def build_parser():
     status_parser.add_argument('-v', '--verbose', action='store_true', help="Print additional relay data")
     status_parser.set_defaults(func=check_relay_status)
 
+    ## query and random commands have the same arguments
     # 'query' subcommand to query the database
     query_parser = subparsers.add_parser('query', help="Query database, see `query -h` for options", aliases=["q"])
-    
+    # 'random' subcommand to randomly activate a relay
+    random_relay_parser = subparsers.add_parser('random', help="Randomly activate relay")
+
     country_help = "Country filter. Country code (2-letter) or name, accepts partial string search"
     city_help    = "City filter. City code (3-letter) or name, accepts partial string search"
     daita_help   = "Defense Against AI-guided Traffic Analysis, choices = [0, 1]"
@@ -98,8 +101,10 @@ def build_parser():
     for name, options in query_args.items():
         flags = options.pop("flags")
         query_parser.add_argument(*flags, **options)
+        random_relay_parser.add_argument(*flags, **options)
 
     # Set defaults
     query_parser.set_defaults(func=query_database)
+    random_relay_parser.set_defaults(func=activate_random_relay)
 
     return parser

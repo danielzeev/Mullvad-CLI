@@ -5,6 +5,7 @@ import sqlite3
 import sys
 import re
 import os
+from random import choice
 
 ## ------------- LOAD DEFAULTS FROM CONF FILE ------------- ##
 
@@ -485,7 +486,7 @@ def fetch_relay_info(args):
     conn.close()
 
 
-def query_database(args):
+def query_database(args, active=None, print_results=True, write_results=True):
     """
     Handle general filtering queries (e.g., --country us --city nyc).
 
@@ -521,6 +522,10 @@ def query_database(args):
         print("No query provided. Exiting...")
         sys.exit()
 
+    if active is not None:
+        query_params["active"] = active
+
+
     # Build the base of the query
     query = "SELECT * FROM relays WHERE "
     
@@ -553,25 +558,68 @@ def query_database(args):
         print("No results found matching specified query")
         sys.exit()
 
-    # Columns to print and their output widths 
-    default_columns = {
-        "IDX": 4, "hostname": 13, "country_name" : 15, "city_name": 20, 
-        "active" : 8, "owned" : 6, "daita" : 6, "status_messages" : 1,
-        }
+    if print_results:
+        # Columns to print and their output widths 
+        default_columns = {
+            "IDX": 4, "hostname": 13, "country_name" : 15, "city_name": 20, 
+            "active" : 8, "owned" : 6, "daita" : 6, "status_messages" : 1,
+            }
 
-    # Print column headers
-    _print_query_col_header(default_columns) 
+        # Print column headers
+        _print_query_col_header(default_columns) 
 
-    # Print the results for the default columns
-    for idx, row in enumerate(results):
-        # Creates `col`:`value` pairs from each Sqlite3.Row object only for desired display columns
-        row_data  = {"IDX" : idx} | {col: row[col] for col in default_columns if col in dict(row)}
-        # Get column values and combine into a single string
-        _print_query_row_values(row_data, default_columns)
+        # Print the results for the default columns
+        for idx, row in enumerate(results):
+            # Creates `col`:`value` pairs from each Sqlite3.Row object only for desired display columns
+            row_data  = {"IDX" : idx} | {col: row[col] for col in default_columns if col in dict(row)}
+            # Get column values and combine into a single string
+            _print_query_row_values(row_data, default_columns)
 
-    # Write hostname results to file
-    _write_query_results(query_results=results)
+    if write_results:
+        # Write hostname results to file
+        _write_query_results(query_results=results)
 
     # Close the connection
     cur.close()
     conn.close()
+
+    return results #[row["hostname"] for row in results]
+
+
+def activate_random_relay(args): 
+    """
+    Activate a random relay.
+
+    Randomly select relay from a country (--Country, -C) or city (--City, -c).
+
+    Updates and queries the database then randomly selects relay from results.
+
+    Example:
+    mull random -c NYC  --> randomly select relay from NYC
+    mull random -C US   --> randomy select relay from USA
+    
+    Note: the function only returns relays that are operational
+    """
+    from argparse import Namespace
+
+    # update database
+    update_database()
+    
+    # Query database
+    results = query_database(
+        args,
+        active=1, 
+        write_results=False, 
+        print_results=False)
+    
+    hostname = choice([row["hostname"] for row in results])
+    print(f"Activating relay: {hostname}")
+        
+    up_args = Namespace(
+        action="up",
+        relay=hostname,
+        results=None,
+        verbose=False,
+    )
+
+    handle_up(up_args)
