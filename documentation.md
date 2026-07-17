@@ -26,7 +26,6 @@ Mullvad-CLI was built to make managing Mullvad VPN connections on Linux faster a
 - View relay information and connection status  
 - Maintain and query a local SQLite database of Mullvad servers  
 - Automatic deactivation protection during torrenting  
-- No external Python dependencies — runs on default Python installation  
 
 > **Note:** See the end of `defaults.conf` to add torrent clients if yours is missing.
 
@@ -34,7 +33,8 @@ Mullvad-CLI was built to make managing Mullvad VPN connections on Linux faster a
 
 ## Requirements
 
-- Python 3.6+ (standard library only)  
+- Python 3.6+ 
+- [Requests](https://docs.python-requests.org/en/latest/index.html)
 - SQLite3 (usually bundled with Python)  
 - `wg` and `wg-quick` from WireGuard ([install instructions](https://www.wireguard.com/install/))  
 - Linux system (tested on [Void Linux](https://voidlinux.org/))  
@@ -96,15 +96,15 @@ mull update
 
 ### Relay Defaults Management
 
-* **`defaults`**
-  Show the current default (favorites) relay list:
+#### defaults
+Show the current default (favorites) relay list:
 
   ```bash
   mull defaults
   ```
 
-* **`add`**
-  Add a relay to the default list:
+#### add
+Add a relay to the default list:
 
   ```bash
   mull add [options] <relay>
@@ -127,8 +127,8 @@ mull update
   mull add -r 2 -p 1              # Insert the relay located at index 2 in the query results to position 1 in the defaults list
   ```
 
-* **`remove`**
-  Remove a relay by hostname or index:
+#### remove
+Remove a relay by hostname or index:
 
   ```bash
   mull remove [options] <relay>
@@ -141,8 +141,8 @@ mull update
   mull remove 2                   # Remove by index
   ```
 
-* **`move`**
-  Move relay from one index to another in the default list:
+#### move
+Move relay from one index to another in the default list:
 
   ```bash
   mull move <index1> <index2>
@@ -154,8 +154,8 @@ mull update
   mull move 1 3                   # Move relay from index 1 to index 3
   ```
 
-* **`swap`**
-  Swap positions of two relays in the default list:
+#### swap
+Swap positions of two relays in the default list:
 
   ```bash
   mull swap <index1> <index2>
@@ -171,8 +171,8 @@ mull update
 
 ### Relay Activation & Deactivation
 
-* **`up`**
-  Activate a relay:
+#### up
+Activate a relay:
 
   ```bash
   mull up [options] <relay>
@@ -196,8 +196,8 @@ mull update
   mull up -r 1                    # Activate relay located at index 1 from the query results
   ```
 
-* **`down`**
-  Deactivate a relay:
+#### down
+Deactivate a relay:
 
   ```bash
   mull down [options]
@@ -217,19 +217,62 @@ mull update
 
 > **Note:** Torrent activity is detected by scanning running processes via `ps aux` for torrent clients listed in `defaults.conf`.
 
+
+#### random
+Randomly select and activate a relay:
+
+  ```bash
+  mull random [options]
+  ```
+
+* Selects a random relay matching the provided filters.
+* Only active (`active=1`) relays are considered.
+* If no filters are specified, selects randomly from all active relays.
+
+*Options:*
+
+```
+ -h, --help                  : Show the help message and exit
+ -C, --country  <code|name>  : Filter by country code or name
+ -c, --city     <code|name>  : Filter by city code or name
+ --provider     <name>       : Filter by provider
+ --owned        <0|1>        : Filter by ownership
+ --daita        <0|1>        : Filter by DAITA enabled status
+```
+
+*Examples:*
+
+```bash
+mull random                         # Activate a random active relay
+mull random --country usa           # Activate a random relay from USA
+mull random -C usa                  # Activate a random relay from USA
+mull random --country usa --city miami
+                                    # Activate a random relay from Miami, USA
+mull random -C usa -c mia           # Activate a random relay from Miami, USA
+mull random --provider mullvad      # Activate a random relay from Mullvad provider
+mull random --owned 1               # Activate a random Mullvad-owned relay
+```
+
+> **Notes on `--country` and `--city`:**
+>
+> * If the provided `--country` argument is exactly two letters, it is assumed to be a country code and will be matched against the `country_code` column.
+> * If the `--city` argument is exactly three letters, it is treated as a city code and matched against the `city_code` column.
+> * Otherwise, the inputs are treated as partial names and matched using SQL `LIKE` against `country_name` or `city_name` depending on the flag used.
+> * Unlike `query`, the `random` command does not display query results and instead randomly selects one matching relay and activates it.
+
 ---
 
 ### Information and Status Commands
 
-* **`update`**
-  Refresh the local Mullvad server database:
+#### update
+Refresh the local Mullvad server database:
 
   ```bash
   mull update
   ```
 
-* **`info`**
-  Show detailed information about a relay:
+#### info
+Show detailed information about a relay:
 
   ```bash
   mull info [options] <relay>
@@ -250,8 +293,8 @@ mull update
   mull info -r 1 -v                 # Show extended info for relay located at index 1 from the query results
   ```
 
-* **`status`**
-  Get connection info from mullvad check and WireGuard status (when used with `-v` flag):
+#### status
+Get connection info from mullvad check and WireGuard status (when used with `-v` flag):
 
   ```bash
   mull status
@@ -261,8 +304,8 @@ mull update
 
 ### Advanced Query
 
-* **`query`**
-  Filter and list servers from the database:
+#### query
+Filter and list servers from the database:
 
   ```bash
   mull query [options]

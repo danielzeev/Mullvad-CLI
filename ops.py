@@ -517,14 +517,13 @@ def query_database(args, active=None, print_results=True, write_results=True):
         if v is not None and k != 'func'
     }
     
+    if active is not None:
+        query_params["active"] = active
+
     # Catch empty query
     if not query_params:
         print("No query provided. Exiting...")
         sys.exit()
-
-    if active is not None:
-        query_params["active"] = active
-
 
     # Build the base of the query
     query = "SELECT * FROM relays WHERE "

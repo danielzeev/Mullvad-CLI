@@ -15,7 +15,7 @@ Mullvad-CLI was built to make managing Mullvad VPN connections on Linux faster a
 - ℹ️ View relay information and status  
 - 💾 Maintain and query a local SQLite database of Mullvad servers  
 - 🛑 Deactivation protection when torrenting  
-- 🐍 No external Python dependencies — runs on default Python installation  
+- 🐍 Requires Requests (although may be removed in the future)  
 
 > **Note:** Check the end of `defaults.conf` for torrent clients, add yours if it's not there.  
 > Currently checks for: `qbittorrent | transmission | deluge | fragments | ktorrent`
@@ -24,7 +24,8 @@ Mullvad-CLI was built to make managing Mullvad VPN connections on Linux faster a
 
 ## 🖥️ Requirements
 
-- Python 3.6+ (standard library only)  
+- Python 3.6+  
+- [Requests](https://docs.python-requests.org/en/latest/index.html)
 - SQLite3 (usually included with Python)  
 - `wg`, `wg-quick` (from WireGuard) — [install instructions](https://www.wireguard.com/install/)  
 - Linux system (tested on [Void Linux](https://voidlinux.org/))  
@@ -96,6 +97,7 @@ to refresh the database.
 Commands:  
     up                  Activate relay  
     down                Deactivate relay  
+    random              Randomly activate relay (accepts same options as query command)
     defaults (d)        Print default relays list
     add (a)             Add relay hostname to default relays list  
     remove              Remove a relay (hostname or position)  
